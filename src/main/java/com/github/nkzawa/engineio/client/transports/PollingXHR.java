@@ -123,7 +123,6 @@ public class PollingXHR extends Polling {
                 }
                 this.onData(data.toString());
             } catch (IOException e) {
-                e.printStackTrace();
                 this.onError(e);
             } finally {
                 try {

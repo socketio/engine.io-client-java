@@ -188,8 +188,8 @@ public abstract class Socket extends Emitter {
 
                 // TODO: handle error
                 Exception err = args.length > 0 ? (Exception)args[0] : null;
-                Transport.TransportException error = new Transport.TransportException("probe error", err);
-                error.transport = transport[0].name;
+                EngineIOException error = new EngineIOException("probe error", err);
+                //error.transport = transport[0].name;
 
                 transport[0].close();
                 transport[0] = null;
@@ -239,8 +239,8 @@ public abstract class Socket extends Emitter {
                             });
                         } else {
                             logger.info(String.format("probe transport '%s' failed", name));
-                            Transport.TransportException err = new Transport.TransportException("probe error");
-                            err.transport = transport[0].name;
+                            EngineIOException err = new EngineIOException("probe error");
+                            //err.transport = transport[0].name;
                             self.emit("error", err);
                         }
                     }
@@ -305,8 +305,8 @@ public abstract class Socket extends Emitter {
                 this.ping();
             } else if ("error".equals(packet.type)) {
                 // TODO: handle error
-                Exception err = new Exception("server error");
-                // err.code = packet.data;
+                EngineIOException err = new EngineIOException("server error");
+                //err.code = packet.data;
                 this.emit("error", err);
             } else if ("message".equals(packet.type)) {
                 this.emit("data", packet.data);
@@ -491,7 +491,7 @@ public abstract class Socket extends Emitter {
             this.onclose();
             // TODO:
             // clean buffer in next tick, so developers can still
-            // gra the buffers on `close` event
+            // grab the buffers on `close` event
             // setTimeout(function() {}
             //   self.writeBuffer = [];
             //   self.callbackBuffer = [];

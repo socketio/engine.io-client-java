@@ -22,9 +22,6 @@ public abstract class Transport extends Emitter {
     protected String timestampParam;
     protected String readyState = "";
 
-    public Transport() {
-        // TODO: remove
-    }
 
     public Transport(Options opts) {
         this.path = opts.path;
@@ -37,10 +34,8 @@ public abstract class Transport extends Emitter {
     }
 
     protected Transport onError(String msg, Exception desc) {
-        // TODO:
-        Exception err = new Exception(msg);
-        // err.type = "TransportError";
-        // err.description = desc;
+        // TODO: handle error
+        Exception err = new EngineIOException(msg, desc);
         this.emit("error", err);
         return this;
     }
@@ -106,18 +101,5 @@ public abstract class Transport extends Emitter {
         public int policyPort;
         public List<NameValuePair> query;
 
-    }
-
-    public static class TransportException extends Exception {
-
-        public String transport;
-
-        public TransportException(String detailMessage) {
-            super(detailMessage);
-        }
-
-        public TransportException(String detailMessage, Throwable throwable) {
-            super(detailMessage, throwable);
-        }
     }
 }

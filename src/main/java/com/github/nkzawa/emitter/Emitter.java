@@ -88,6 +88,7 @@ public class Emitter {
     }
 
     public static interface Listener {
+
         public void call(Object... args);
     }
 }
