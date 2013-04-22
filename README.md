@@ -21,7 +21,7 @@ socket.open();
 ```
 
 ## Features
-This library supports all of the features the JS client does, except the Flash transport, including events, options and upgrage.
+This library supports all of the features the JS client does, including events, options and upgrage, except the Flash transport.
 
 ## License
 
