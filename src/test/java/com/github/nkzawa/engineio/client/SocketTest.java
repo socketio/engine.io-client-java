@@ -73,8 +73,8 @@ public class SocketTest {
     public void stopServer() throws InterruptedException {
         System.out.println("Stopping server ...");
         serverProcess.destroy();
-        serverOutout.cancel(true);
-        serverError.cancel(true);
+        serverOutout.cancel(false);
+        serverError.cancel(false);
         serverService.shutdown();
         serverService.awaitTermination(3000, TimeUnit.MILLISECONDS);
     }

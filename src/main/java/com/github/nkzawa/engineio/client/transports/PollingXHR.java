@@ -6,6 +6,8 @@ import com.github.nkzawa.emitter.Emitter;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class PollingXHR extends Polling {
@@ -78,6 +80,8 @@ public class PollingXHR extends Polling {
 
     private static class Request extends Emitter {
 
+        private static final ExecutorService xhrService = Executors.newCachedThreadPool();
+
         String method;
         String uri;
         String data;
@@ -106,29 +110,39 @@ public class PollingXHR extends Polling {
             }
 
             logger.info(String.format("sending xhr with url %s | data %s", this.uri, this.data));
+            xhrService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    BufferedWriter writer = null;
+                    BufferedReader reader = null;
+                    try {
+                        if (self.data != null) {
+                            byte[] data = self.data.getBytes("UTF-8");
+                            xhr.setFixedLengthStreamingMode(data.length);
+                            writer = new BufferedWriter(new OutputStreamWriter(xhr.getOutputStream()));
+                            writer.write(self.data);
+                            writer.flush();
+                        }
 
-            BufferedReader reader = null;
-            try {
-                if (this.data != null) {
-                    byte[] data = this.data.getBytes("UTF-8");
-                    xhr.setFixedLengthStreamingMode(data.length);
-                    xhr.getOutputStream().write(data);
+                        String line;
+                        StringBuilder data = new StringBuilder();
+                        reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
+                        while ((line = reader.readLine()) != null) {
+                            data.append(line);
+                        }
+                        self.onData(data.toString());
+                    } catch (IOException e) {
+                        self.onError(e);
+                    } finally {
+                        try {
+                            if (writer != null) writer.close();
+                        } catch (IOException e) {}
+                        try {
+                            if (reader != null) reader.close();
+                        } catch (IOException e) {}
+                    }
                 }
-
-                String line;
-                StringBuilder data = new StringBuilder();
-                reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                while ((line = reader.readLine()) != null) {
-                    data.append(line);
-                }
-                this.onData(data.toString());
-            } catch (IOException e) {
-                this.onError(e);
-            } finally {
-                try {
-                    if (reader != null) reader.close();
-                } catch (IOException e) {}
-            }
+            });
         }
 
         public void onSuccess() {
