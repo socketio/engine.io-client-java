@@ -103,12 +103,11 @@ public abstract class Socket extends Emitter {
         Socket.sockets.evs.emit("add", this);
     }
 
-    public Socket open() {
+    public void open() {
         this.readyState = "opening";
         Transport transport = this.createTransport(this.transports.get(0));
         this.setTransport(transport);
         transport.open();
-        return this;
     }
 
     private Transport createTransport(String name) {

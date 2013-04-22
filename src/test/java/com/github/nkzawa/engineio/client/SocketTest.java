@@ -98,7 +98,8 @@ public class SocketTest {
                 System.out.println("onclose:");
                 events.offer("onclose");
             }
-        }.open();
+        };
+        socket.open();
 
         assertThat(events.take(), is("onopen"));
         socket.close();
