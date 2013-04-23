@@ -18,6 +18,7 @@ import static org.junit.Assert.assertThat;
 @RunWith(JUnit4.class)
 public class SocketTest {
 
+    final static int TIMEOUT = 3000;
     final static int PORT = 3000;
 
     private Process serverProcess;
@@ -79,7 +80,7 @@ public class SocketTest {
         serverService.awaitTermination(3000, TimeUnit.MILLISECONDS);
     }
 
-    @Test
+    @Test(timeout = TIMEOUT)
     public void openAndClose() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 
@@ -106,7 +107,7 @@ public class SocketTest {
         assertThat(events.take(), is("onclose"));
     }
 
-    @Test
+    @Test(timeout = TIMEOUT)
     public void messages() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 

@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
-
 public abstract class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger("engine.io-client:socket");
@@ -520,9 +519,9 @@ public abstract class Socket extends Emitter {
             opts.secure = "https".equals(uri.getScheme()) || "wss".equals(uri.getScheme());
             opts.port = uri.getPort();
 
-            String query = uri.getQuery();
+            String query = uri.getRawQuery();
             if (query != null) {
-                opts.query = uri.getQuery();
+                opts.query = query;
             }
 
             return opts;
