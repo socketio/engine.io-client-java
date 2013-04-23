@@ -4,15 +4,14 @@ package com.github.nkzawa.engineio.client;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
-import org.apache.http.NameValuePair;
 
-import java.util.List;
+import java.util.Map;
 
 public abstract class Transport extends Emitter {
 
     public boolean writable;
     public String name;
-    public List<NameValuePair> query;
+    public Map<String, String> query;
 
     protected boolean secure;
     protected boolean timestampRequests;
@@ -99,7 +98,7 @@ public abstract class Transport extends Emitter {
         public boolean timestampRequests;
         public int port;
         public int policyPort;
-        public List<NameValuePair> query;
+        public Map<String, String> query;
 
     }
 }

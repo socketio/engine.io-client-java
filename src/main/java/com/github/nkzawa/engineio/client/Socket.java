@@ -9,17 +9,10 @@ import com.github.nkzawa.engineio.parser.Parser;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.apache.http.Consts;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.message.BasicNameValuePair;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
@@ -52,7 +45,7 @@ public abstract class Socket extends Emitter {
     private String readyState = "";
     private List<String> transports;
     private List<String> upgrades;
-    private List<NameValuePair> query;
+    private Map<String, String> query;
     private ConcurrentLinkedQueue<Packet> writeBuffer = new ConcurrentLinkedQueue<Packet>();
     private ConcurrentLinkedQueue<Runnable> callbackBuffer = new ConcurrentLinkedQueue<Runnable>();
     private Transport transport;
@@ -90,7 +83,8 @@ public abstract class Socket extends Emitter {
         this.secure = opts.secure;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
-        this.query = URLEncodedUtils.parse(opts.query, Consts.UTF_8);
+        this.query = opts.query != null ?
+                Util.qsParse(opts.query) : new HashMap<String, String>();
         this.upgrade = opts.upgrade;
         this.path = (opts.path != null ? opts.path : "/engine.io").replaceAll("/$", "") + "/";
         this.timestampParam = opts.timestampParam != null ? opts.timestampParam : "t";
@@ -112,12 +106,12 @@ public abstract class Socket extends Emitter {
 
     private Transport createTransport(String name) {
         logger.info(String.format("creating transport '%s'", name));
-        List<NameValuePair> query = new ArrayList<NameValuePair>(this.query);
+        Map<String, String> query = new HashMap<String, String>(this.query);
 
-        query.add(new BasicNameValuePair("EIO", String.valueOf(Parser.protocol)));
-        query.add(new BasicNameValuePair("transport", name));
+        query.put("EIO", String.valueOf(Parser.protocol));
+        query.put("transport", name);
         if (this.id != null) {
-            query.add(new BasicNameValuePair("sid", this.id));
+            query.put("sid", this.id);
         }
 
         Transport.Options opts = new Transport.Options();
@@ -320,17 +314,9 @@ public abstract class Socket extends Emitter {
     private void onHandshake(JsonObject data) {
         this.emit("handshake", data);
         this.id = data.get("sid").getAsString();
+        this.transport.query.put("sid", data.get("sid").getAsString());
 
-        Iterator<NameValuePair> i = this.transport.query.iterator();
-        while (i.hasNext()) {
-            NameValuePair pair = i.next();
-            if ("sid".equals(pair.getName())) {
-                i.remove();
-            }
-        }
-        this.transport.query.add(new BasicNameValuePair("sid", data.get("sid").getAsString()));
-
-        List<String> upgrades = new ArrayList<String >();
+        List<String> upgrades = new ArrayList<String>();
         for (JsonElement upgrade : data.get("upgrades").getAsJsonArray()) {
             upgrades.add(upgrade.getAsString());
         }

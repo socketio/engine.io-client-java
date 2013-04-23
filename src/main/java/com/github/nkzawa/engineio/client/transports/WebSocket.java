@@ -2,22 +2,18 @@ package com.github.nkzawa.engineio.client.transports;
 
 
 import com.github.nkzawa.engineio.client.Transport;
+import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
-import org.apache.http.Consts;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.message.BasicNameValuePair;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -112,9 +108,9 @@ public class WebSocket extends Transport {
     }
 
     private String uri() {
-        List<NameValuePair> query = this.query;
+        Map<String, String> query = this.query;
         if (query == null) {
-            query = new ArrayList<NameValuePair>();
+            query = new HashMap<String, String>();
         }
         String schema = this.secure ? "wss" : "ws";
         String port = "";
@@ -125,18 +121,10 @@ public class WebSocket extends Transport {
         }
 
         if (this.timestampRequests) {
-            Iterator<NameValuePair> i = query.iterator();
-            while (i.hasNext()) {
-                NameValuePair pair = i.next();
-                if (this.timestampParam.equals(pair.getName())) {
-                    i.remove();
-                }
-            }
-            query.add(new BasicNameValuePair(this.timestampParam,
-                    String.valueOf(new Date().getTime())));
+            query.put(this.timestampParam, String.valueOf(new Date().getTime()));
         }
 
-        String _query = URLEncodedUtils.format(query, Consts.UTF_8);
+        String _query = Util.qs(query);
         if (_query.length() > 0) {
             _query = "?" + _query;
         }
