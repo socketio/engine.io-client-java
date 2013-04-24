@@ -39,13 +39,13 @@ public class PollingXHR extends Polling {
         opts.data = data;
         Request req = this.request(opts);
         final PollingXHR self = this;
-        req.on("success", new Listener() {
+        req.on(Request.EVENT_SUCCESS, new Listener() {
             @Override
             public void call(Object... args) {
                 fn.run();
             }
         });
-        req.on("error", new Listener() {
+        req.on(Request.EVENT_ERROR, new Listener() {
             @Override
             public void call(Object... args) {
                 Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
@@ -60,14 +60,14 @@ public class PollingXHR extends Polling {
         logger.info("xhr poll");
         Request req = this.request();
         final PollingXHR self = this;
-        req.on("data", new Listener() {
+        req.on(Request.EVENT_DATA, new Listener() {
             @Override
             public void call(Object... args) {
                 String data = args.length > 0 ? (String)args[0] : null;
                 self.onData(data);
             }
         });
-        req.on("error", new Listener() {
+        req.on(Request.EVENT_ERROR, new Listener() {
             @Override
             public void call(Object... args) {
                 Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
@@ -79,6 +79,10 @@ public class PollingXHR extends Polling {
     }
 
     private static class Request extends Emitter {
+
+        private static final String EVENT_SUCCESS = "success";
+        private static final String EVENT_DATA = "data";
+        private static final String EVENT_ERROR = "error";
 
         private static final ExecutorService xhrService = Executors.newCachedThreadPool();
 
@@ -146,17 +150,17 @@ public class PollingXHR extends Polling {
         }
 
         public void onSuccess() {
-            this.emit("success");
+            this.emit(EVENT_SUCCESS);
             this.cleanup();
         }
 
         public void onData(String data) {
-            this.emit("data", data);
+            this.emit(EVENT_DATA, data);
             this.onSuccess();
         }
 
         public void onError(Exception err) {
-            this.emit("error", err);
+            this.emit(EVENT_ERROR, err);
             this.cleanup();
         }
 

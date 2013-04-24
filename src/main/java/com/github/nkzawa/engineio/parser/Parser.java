@@ -8,13 +8,13 @@ public class Parser {
 
     public static final int protocol = 2;
     public static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
-        put("open", 0);
-        put("close", 1);
-        put("ping", 2);
-        put("pong", 3);
-        put("message", 4);
-        put("upgrade", 5);
-        put("noop", 6);
+        put(Packet.OPEN, 0);
+        put(Packet.CLOSE, 1);
+        put(Packet.PING, 2);
+        put(Packet.PONG, 3);
+        put(Packet.MESSAGE, 4);
+        put(Packet.UPGRADE, 5);
+        put(Packet.NOOP, 6);
     }};
     public static final Map<Integer, String> bipackets = new HashMap<Integer, String>();
     static {
@@ -23,7 +23,7 @@ public class Parser {
         }
     }
 
-    private static Packet err = new Packet("error", "parser error");
+    private static Packet err = new Packet(Packet.ERROR, "parser error");
 
 
     private Parser() {}

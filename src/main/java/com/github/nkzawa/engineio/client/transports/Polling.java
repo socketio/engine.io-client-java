@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
+import com.github.nkzawa.engineio.client.Socket;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -15,12 +16,15 @@ abstract public class Polling extends Transport {
 
     private static final Logger logger = Logger.getLogger("engine.io-client:polling");
 
+    public static final String EVENT_POLL = "poll";
+    public static final String EVENT_POLL_COMPLETE = "pollComplete";
+
     private boolean polling;
 
 
     public Polling(Options opts) {
         super(opts);
-        this.name = "polling";
+        this.name = Socket.POLLING;
     }
 
     protected void doOpen() {
@@ -31,13 +35,13 @@ abstract public class Polling extends Transport {
         int pending = 0;
         final Polling self = this;
 
-        this.readyState = "paused";
+        this.readyState = PAUSED;
 
         final Runnable pause = new Runnable() {
             @Override
             public void run() {
                 logger.info("paused");
-                self.readyState = "paused";
+                self.readyState = PAUSED;
                 onPause.run();
             }
         };
@@ -48,7 +52,7 @@ abstract public class Polling extends Transport {
             if (this.polling) {
                 logger.info("we are currently polling - waiting to pause");
                 total[0]++;
-                this.once("pollComplete", new Listener() {
+                this.once(EVENT_POLL_COMPLETE, new Listener() {
                     @Override
                     public void call(Object... args) {
                         logger.info("pre-pause polling complete");
@@ -62,7 +66,7 @@ abstract public class Polling extends Transport {
             if (!this.writable) {
                 logger.info("we are currently writing - waiting to pause");
                 total[0]++;
-                this.once("drain", new Listener() {
+                this.once(EVENT_DRAIN, new Listener() {
                     @Override
                     public void call(Object... args) {
                         logger.info("pre-pause writing complete");
@@ -81,7 +85,7 @@ abstract public class Polling extends Transport {
         logger.info("polling");
         this.polling = true;
         this.doPoll();
-        this.emit("poll");
+        this.emit(EVENT_POLL);
     }
 
     protected void onData(String data) {
@@ -91,11 +95,11 @@ abstract public class Polling extends Transport {
         Parser.decodePayload(data, new Parser.DecodePayloadCallback() {
             @Override
             public boolean call(Packet packet, int index, int total) {
-                if ("opening".equals(self.readyState)) {
+                if (self.readyState == OPENING) {
                     self.onOpen();
                 }
 
-                if ("close".equals(packet.type)) {
+                if (Packet.CLOSE.equals(packet.type)) {
                     self.onClose();
                     return false;
                 }
@@ -105,21 +109,21 @@ abstract public class Polling extends Transport {
             }
         });
 
-        if (!"closed".equals(this.readyState)) {
+        if (this.readyState != CLOSED) {
             this.polling = false;
-            this.emit("pollComplete");
+            this.emit(EVENT_POLL_COMPLETE);
 
-            if ("open".equals(this.readyState)) {
+            if (this.readyState == OPEN) {
                 this.poll();
             } else {
-                logger.info(String.format("ignoring poll - transport state '%s'", this.readyState));
+                logger.info(String.format("ignoring poll - transport state '%s'", STATE_MAP.get(this.readyState)));
             }
         }
     }
 
     protected void doClose() {
         logger.info("sending close packet");
-        this.send(new Packet[] {new Packet("close", null)});
+        this.send(new Packet[] {new Packet(Packet.CLOSE, null)});
     }
 
     protected void write(Packet[] packets) {
@@ -129,7 +133,7 @@ abstract public class Polling extends Transport {
             @Override
             public void run() {
                 self.writable = true;
-                self.emit("drain");
+                self.emit(EVENT_DRAIN);
             }
         });
     }

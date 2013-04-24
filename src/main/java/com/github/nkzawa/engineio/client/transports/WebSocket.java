@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
+import com.github.nkzawa.engineio.client.Socket;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -29,7 +30,7 @@ public class WebSocket extends Transport {
 
     public WebSocket(Options opts) {
         super(opts);
-        this.name = "websocket";
+        this.name = Socket.WEBSOCKET;
     }
 
     protected void doOpen() {
@@ -74,7 +75,7 @@ public class WebSocket extends Transport {
             @Override
             public void run() {
                 self.writable = true;
-                self.emit("drain");
+                self.emit(EVENT_DRAIN);
             }
         };
 

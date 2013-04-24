@@ -31,6 +31,9 @@ public abstract class Socket extends Emitter {
         put(CLOSED, "closed");
     }};
 
+    public static final String POLLING = "polling";
+    public static final String WEBSOCKET = "websocket";
+
     public static final String EVENT_OPEN = "open";
     public static final String EVENT_CLOSE = "close";
     public static final String EVENT_HANDSHAKE = "handshake";
@@ -114,7 +117,7 @@ public abstract class Socket extends Emitter {
         this.timestampParam = opts.timestampParam != null ? opts.timestampParam : "t";
         this.timestampRequests = opts.timestampRequests;
         this.transports = new ArrayList<String>(Arrays.asList(
-                opts.transports != null ? opts.transports : new String[] {"polling", "websocket"}));
+                opts.transports != null ? opts.transports : new String[] {POLLING, WEBSOCKET}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
 
         Socket.sockets.add(this);
@@ -148,9 +151,9 @@ public abstract class Socket extends Emitter {
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
 
-        if ("websocket".equals(name)) {
+        if (WEBSOCKET.equals(name)) {
             return new WebSocket(opts);
-        } else if ("polling".equals(name)) {
+        } else if (POLLING.equals(name)) {
             return new PollingXHR(opts);
         }
 
@@ -167,22 +170,22 @@ public abstract class Socket extends Emitter {
 
         this.transport = transport;
 
-        transport.on("drain", new Listener() {
+        transport.on(Transport.EVENT_DRAIN, new Listener() {
             @Override
             public void call(Object... args) {
                 self.onDrain();
             }
-        }).on("packet", new Listener() {
+        }).on(Transport.EVENT_PACKET, new Listener() {
             @Override
             public void call(Object... args) {
                 self.onPacket(args.length > 0 ? (Packet) args[0] : null);
             }
-        }).on("error", new Listener() {
+        }).on(Transport.EVENT_ERROR, new Listener() {
             @Override
             public void call(Object... args) {
                 self.onError(args.length > 0 ? (Exception) args[0] : null);
             }
-        }).on("close", new Listener() {
+        }).on(Transport.EVENT_CLOSE, new Listener() {
             @Override
             public void call(Object... args) {
                 self.onClose("transport close");
@@ -215,20 +218,20 @@ public abstract class Socket extends Emitter {
             }
         };
 
-        transport[0].once("open", new Listener() {
+        transport[0].once(Transport.EVENT_OPEN, new Listener() {
             @Override
             public void call(Object... args) {
                 if (failed[0]) return;
 
                 logger.info(String.format("probe transport '%s' opened", name));
-                Packet packet = new Packet("ping", "probe");
+                Packet packet = new Packet(Packet.PING, "probe");
                 transport[0].send(new Packet[] {packet});
-                transport[0].once("packet", new Listener() {
+                transport[0].once(Transport.EVENT_PACKET, new Listener() {
                     @Override
                     public void call(Object... args) {
                         if (failed[0]) return;
                         Packet msg = (Packet)args[0];
-                        if ("pong".equals(msg.type) && "probe".equals(msg.data)) {
+                        if (Packet.PONG.equals(msg.type) && "probe".equals(msg.data)) {
                             logger.info(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
@@ -243,10 +246,10 @@ public abstract class Socket extends Emitter {
                                     }
 
                                     logger.info("changing transport and sending upgrade packet");
-                                    transport[0].off("error", onerror);
+                                    transport[0].off(Transport.EVENT_ERROR, onerror);
                                     self.emit(EVENT_UPGRADE, transport);
                                     self.setTransport(transport[0]);
-                                    Packet packet = new Packet("upgrade", null);
+                                    Packet packet = new Packet(Packet.UPGRADE, null);
                                     transport[0].send(new Packet[]{packet});
                                     transport[0] = null;
                                     self.upgrading = false;
@@ -264,9 +267,9 @@ public abstract class Socket extends Emitter {
             }
         });
 
-        transport[0].once("error", onerror);
+        transport[0].once(Transport.EVENT_ERROR, onerror);
 
-        this.once("close", new Listener() {
+        this.once(EVENT_CLOSE, new Listener() {
             @Override
             public void call(Object... args) {
                 if (transport[0] != null) {
@@ -278,7 +281,7 @@ public abstract class Socket extends Emitter {
             }
         });
 
-        this.once("upgrading", new Listener() {
+        this.once(EVENT_UPGRADING, new Listener() {
             @Override
             public void call(Object... args) {
                 Transport to = (Transport)args[0];
@@ -315,16 +318,16 @@ public abstract class Socket extends Emitter {
             this.emit(EVENT_PACKET, packet);
             this.emit(EVENT_HEARTBEAT);
 
-            if ("open".equals(packet.type)) {
+            if (Packet.OPEN.equals(packet.type)) {
                 this.onHandshake(new JsonParser().parse(packet.data).getAsJsonObject());
-            } else if ("pong".equals(packet.type)) {
+            } else if (Packet.PONG.equals(packet.type)) {
                 this.ping();
-            } else if ("error".equals(packet.type)) {
+            } else if (Packet.ERROR.equals(packet.type)) {
                 // TODO: handle error
                 EngineIOException err = new EngineIOException("server error");
                 //err.code = packet.data;
                 this.emit(EVENT_ERROR, err);
-            } else if ("message".equals(packet.type)) {
+            } else if (Packet.MESSAGE.equals(packet.type)) {
                 this.emit(EVENT_DATA, packet.data);
                 this.emit(EVENT_MESSAGE, packet.data);
                 this.onmessage(packet.data);
@@ -390,7 +393,7 @@ public abstract class Socket extends Emitter {
             @Override
             public void run() {
                 logger.info(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
-                self.sendPacket("ping");
+                self.sendPacket(Packet.PING);
                 self.onHeartbeat(self.pingTimeout);
             }
         }, this.pingInterval, TimeUnit.MILLISECONDS);
@@ -444,7 +447,7 @@ public abstract class Socket extends Emitter {
     }
 
     public void send(String msg, Runnable fn) {
-        this.sendPacket("message", msg, fn);
+        this.sendPacket(Packet.MESSAGE, msg, fn);
     }
 
     private void sendPacket(String type) {

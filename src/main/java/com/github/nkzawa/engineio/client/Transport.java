@@ -5,9 +5,27 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class Transport extends Emitter {
+
+    protected static final int OPENING = 0;
+    protected static final int OPEN = 1;
+    protected static final int CLOSED = 2;
+    protected static final int PAUSED = 3;
+    protected static final Map<Integer, String> STATE_MAP = new HashMap<Integer, String>() {{
+        put(OPENING, "opening");
+        put(OPEN, "open");
+        put(CLOSED, "closed");
+        put(PAUSED, "paused");
+    }};
+
+    public static final String EVENT_OPEN = "open";
+    public static final String EVENT_CLOSE = "close";
+    public static final String EVENT_PACKET = "packet";
+    public static final String EVENT_DRAIN = "drain";
+    public static final String EVENT_ERROR = "error";
 
     public boolean writable;
     public String name;
@@ -16,10 +34,10 @@ public abstract class Transport extends Emitter {
     protected boolean secure;
     protected boolean timestampRequests;
     protected int port;
+    protected int readyState = -1;
     protected String path;
     protected String hostname;
     protected String timestampParam;
-    protected String readyState = "";
 
 
     public Transport(Options opts) {
@@ -35,20 +53,20 @@ public abstract class Transport extends Emitter {
     protected Transport onError(String msg, Exception desc) {
         // TODO: handle error
         Exception err = new EngineIOException(msg, desc);
-        this.emit("error", err);
+        this.emit(EVENT_ERROR, err);
         return this;
     }
 
     public Emitter open() {
-        if ("closed".equals(this.readyState) || "".equals(this.readyState)) {
-            this.readyState = "opening";
+        if (this.readyState == CLOSED || this.readyState < 0) {
+            this.readyState = OPENING;
             this.doOpen();
         }
         return this;
     }
 
     public Transport close() {
-        if ("opening".equals(this.readyState) || "open".equals(this.readyState)) {
+        if (this.readyState == OPENING || this.readyState == OPEN) {
             this.doClose();
             this.onClose();
         }
@@ -56,7 +74,7 @@ public abstract class Transport extends Emitter {
     }
 
     public void send(Packet[] packets) {
-        if ("open".equals(this.readyState)) {
+        if (this.readyState == OPEN) {
             this.write(packets);
         } else {
             throw new RuntimeException("Transport not open");
@@ -64,9 +82,9 @@ public abstract class Transport extends Emitter {
     }
 
     protected void onOpen() {
-        this.readyState = "open";
+        this.readyState = OPEN;
         this.writable = true;
-        this.emit("open");
+        this.emit(EVENT_OPEN);
     }
 
     protected void onData(String data) {
@@ -74,12 +92,12 @@ public abstract class Transport extends Emitter {
     }
 
     protected void onPacket(Packet packet) {
-        this.emit("packet", packet);
+        this.emit(EVENT_PACKET, packet);
     }
 
     protected void onClose() {
-        this.readyState = "closed";
-        this.emit("close");
+        this.readyState = CLOSED;
+        this.emit(EVENT_CLOSE);
     }
 
     abstract protected void write(Packet[] packets);
