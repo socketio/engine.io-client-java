@@ -31,6 +31,20 @@ public abstract class Socket extends Emitter {
         put(CLOSED, "closed");
     }};
 
+    public static final String EVENT_OPEN = "open";
+    public static final String EVENT_CLOSE = "close";
+    public static final String EVENT_HANDSHAKE = "handshake";
+    public static final String EVENT_UPGRADING = "upgrading";
+    public static final String EVENT_UPGRADE = "upgrade";
+    public static final String EVENT_PACKET = "packet";
+    public static final String EVENT_PACKET_CREATE = "packetCreate";
+    public static final String EVENT_HEARTBEAT = "heartbeat";
+    public static final String EVENT_DATA = "data";
+    public static final String EVENT_MESSAGE = "message";
+    public static final String EVENT_ERROR = "error";
+    public static final String EVENT_DRAIN = "drain";
+    public static final String EVENT_FLUSH = "flush";
+
     private static final Runnable noop = new Runnable() {
         @Override
         public void run() {}
@@ -104,7 +118,7 @@ public abstract class Socket extends Emitter {
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
 
         Socket.sockets.add(this);
-        Socket.sockets.evs.emit("add", this);
+        Socket.sockets.evs.emit(Sockets.EVENT_ADD, this);
     }
 
     public void open() {
@@ -197,7 +211,7 @@ public abstract class Socket extends Emitter {
                 transport[0].close();
                 transport[0] = null;
                 logger.info(String.format("probing transport '%s' failed because of error: %s", name, err));
-                self.emit("error", error);
+                self.emit(EVENT_ERROR, error);
             }
         };
 
@@ -217,7 +231,7 @@ public abstract class Socket extends Emitter {
                         if ("pong".equals(msg.type) && "probe".equals(msg.data)) {
                             logger.info(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
-                            self.emit("upgrading", transport[0]);
+                            self.emit(EVENT_UPGRADING, transport[0]);
 
                             logger.info(String.format("pausing current transport '%s'", self.transport.name));
                             ((Polling)self.transport).pause(new Runnable() {
@@ -230,7 +244,7 @@ public abstract class Socket extends Emitter {
 
                                     logger.info("changing transport and sending upgrade packet");
                                     transport[0].off("error", onerror);
-                                    self.emit("upgrade", transport);
+                                    self.emit(EVENT_UPGRADE, transport);
                                     self.setTransport(transport[0]);
                                     Packet packet = new Packet("upgrade", null);
                                     transport[0].send(new Packet[]{packet});
@@ -243,7 +257,7 @@ public abstract class Socket extends Emitter {
                             logger.info(String.format("probe transport '%s' failed", name));
                             EngineIOException err = new EngineIOException("probe error");
                             //err.transport = transport[0].name;
-                            self.emit("error", err);
+                            self.emit(EVENT_ERROR, err);
                         }
                     }
                 });
@@ -282,7 +296,7 @@ public abstract class Socket extends Emitter {
     private void onOpen() {
         logger.info("socket open");
         this.readyState = OPEN;
-        this.emit("open");
+        this.emit(EVENT_OPEN);
         this.onopen();
         this.flush();
 
@@ -298,8 +312,8 @@ public abstract class Socket extends Emitter {
         if (this.readyState == OPENING || this.readyState == OPEN) {
             logger.info(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
 
-            this.emit("packet", packet);
-            this.emit("heartbeat");
+            this.emit(EVENT_PACKET, packet);
+            this.emit(EVENT_HEARTBEAT);
 
             if ("open".equals(packet.type)) {
                 this.onHandshake(new JsonParser().parse(packet.data).getAsJsonObject());
@@ -309,10 +323,10 @@ public abstract class Socket extends Emitter {
                 // TODO: handle error
                 EngineIOException err = new EngineIOException("server error");
                 //err.code = packet.data;
-                this.emit("error", err);
+                this.emit(EVENT_ERROR, err);
             } else if ("message".equals(packet.type)) {
-                this.emit("data", packet.data);
-                this.emit("message", packet.data);
+                this.emit(EVENT_DATA, packet.data);
+                this.emit(EVENT_MESSAGE, packet.data);
                 this.onmessage(packet.data);
             }
         } else {
@@ -321,7 +335,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void onHandshake(JsonObject data) {
-        this.emit("handshake", data);
+        this.emit(EVENT_HANDSHAKE, data);
         this.id = data.get("sid").getAsString();
         this.transport.query.put("sid", data.get("sid").getAsString());
 
@@ -336,8 +350,8 @@ public abstract class Socket extends Emitter {
         this.onOpen();
         this.ping();
 
-        this.off("heartbear", this.onHeartbeatAsListener);
-        this.on("heartbear", this.onHeartbeatAsListener);
+        this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
+        this.on(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
     }
 
     private final Listener onHeartbeatAsListener = new Listener() {
@@ -391,7 +405,7 @@ public abstract class Socket extends Emitter {
 
         this.prevBufferLen = 0;
         if (this.writeBuffer.size() == 0) {
-            this.emit("drain");
+            this.emit(EVENT_DRAIN);
         } else {
             this.flush();
         }
@@ -413,7 +427,7 @@ public abstract class Socket extends Emitter {
             logger.info(String.format("flushing %d packets in socket", this.writeBuffer.size()));
             this.prevBufferLen = this.writeBuffer.size();
             this.transport.send(this.writeBuffer.toArray(new Packet[0]));
-            this.emit("flush");
+            this.emit(EVENT_FLUSH);
         }
     }
 
@@ -444,7 +458,7 @@ public abstract class Socket extends Emitter {
         }
 
         Packet packet = new Packet(type, data);
-        this.emit("packetCreate", packet);
+        this.emit(EVENT_PACKET_CREATE, packet);
         this.writeBuffer.offer(packet);
         this.callbackBuffer.offer(fn);
         this.flush();
@@ -463,7 +477,7 @@ public abstract class Socket extends Emitter {
 
     private void onError(Exception err) {
         logger.info(String.format("socket error %s", err));
-        this.emit("error", err);
+        this.emit(EVENT_ERROR, err);
         this.onClose("transport error", err);
     }
 
@@ -481,7 +495,7 @@ public abstract class Socket extends Emitter {
                 this.pingTimeoutTimer.cancel(true);
             }
             this.readyState = CLOSED;
-            this.emit("close", reason, desc);
+            this.emit(EVENT_CLOSE, reason, desc);
             this.onclose();
             // TODO:
             // clean buffer in next tick, so developers can still
@@ -539,6 +553,8 @@ public abstract class Socket extends Emitter {
     }
 
     public static class Sockets extends ConcurrentLinkedQueue<Socket> {
+
+        public static final String EVENT_ADD = "add";
 
         public Emitter evs = new Emitter();
     }
