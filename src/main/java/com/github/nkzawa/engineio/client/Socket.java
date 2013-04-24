@@ -20,6 +20,17 @@ public abstract class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger("engine.io-client:socket");
 
+    private static final int OPENING = 0;
+    private static final int OPEN = 1;
+    private static final int CLOSING = 2;
+    private static final int CLOSED = 3;
+    private static final Map<Integer, String> STATE_MAP = new HashMap<Integer, String>() {{
+        put(OPENING, "opening");
+        put(OPEN, "open");
+        put(CLOSING, "closing");
+        put(CLOSED, "closed");
+    }};
+
     private static final Runnable noop = new Runnable() {
         @Override
         public void run() {}
@@ -35,13 +46,13 @@ public abstract class Socket extends Emitter {
     private int port;
     private int policyPort;
     private int prevBufferLen;
+    private int readyState = -1;
     private long pingInterval;
     private long pingTimeout;
     private String id;
     private String hostname;
     private String path;
     private String timestampParam;
-    private String readyState = "";
     private List<String> transports;
     private List<String> upgrades;
     private Map<String, String> query;
@@ -97,7 +108,7 @@ public abstract class Socket extends Emitter {
     }
 
     public void open() {
-        this.readyState = "opening";
+        this.readyState = OPENING;
         Transport transport = this.createTransport(this.transports.get(0));
         this.setTransport(transport);
         transport.open();
@@ -213,8 +224,7 @@ public abstract class Socket extends Emitter {
                                 @Override
                                 public void run() {
                                     if (failed[0]) return;
-                                    if ("close".equals(self.readyState) ||
-                                            "closing".equals(self.readyState)) {
+                                    if (self.readyState == CLOSED || self.readyState == CLOSING) {
                                         return;
                                     }
 
@@ -271,12 +281,12 @@ public abstract class Socket extends Emitter {
 
     private void onOpen() {
         logger.info("socket open");
-        this.readyState = "open";
+        this.readyState = OPEN;
         this.emit("open");
         this.onopen();
         this.flush();
 
-        if ("open".equals(this.readyState) && this.upgrade && this.transport instanceof Polling) {
+        if (this.readyState == OPEN && this.upgrade && this.transport instanceof Polling) {
             logger.info("starting upgrade probes");
             for (String upgrade: this.upgrades) {
                 this.probe(upgrade);
@@ -285,7 +295,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void onPacket(Packet packet) {
-        if ("opening".equals(this.readyState) || "open".equals(this.readyState)) {
+        if (this.readyState == OPENING || this.readyState == OPEN) {
             logger.info(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
 
             this.emit("packet", packet);
@@ -306,7 +316,7 @@ public abstract class Socket extends Emitter {
                 this.onmessage(packet.data);
             }
         } else {
-            logger.info(String.format("packet received with socket readyState '%s'", this.readyState));
+            logger.info(String.format("packet received with socket readyState '%s'", STATE_MAP.get(this.readyState)));
         }
     }
 
@@ -350,7 +360,7 @@ public abstract class Socket extends Emitter {
         this.pingTimeoutTimer = this.heartbeatScheduler.schedule(new Runnable() {
             @Override
             public void run() {
-                if ("closed".equals(self.readyState)) return;
+                if (self.readyState == CLOSED) return;
                 self.onClose("ping timeout");
             }
         }, timeout, TimeUnit.MILLISECONDS);
@@ -398,7 +408,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void flush() {
-        if (!"closed".equals(this.readyState) && this.transport.writable &&
+        if (this.readyState != CLOSED && this.transport.writable &&
                 !this.upgrading && this.writeBuffer.size() != 0) {
             logger.info(String.format("flushing %d packets in socket", this.writeBuffer.size()));
             this.prevBufferLen = this.writeBuffer.size();
@@ -441,7 +451,7 @@ public abstract class Socket extends Emitter {
     }
 
     public Socket close() {
-        if ("opening".equals(this.readyState) || "open".equals(this.readyState)) {
+        if (this.readyState == OPENING || this.readyState == OPEN) {
             this.onClose("forced close");
             logger.info("socket closing - telling transport to close");
             this.transport.close();
@@ -462,7 +472,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void onClose(String reason, Exception desc) {
-        if ("opening".equals(this.readyState) || "open".equals(this.readyState)) {
+        if (this.readyState == OPENING || this.readyState == OPEN) {
             logger.info(String.format("socket close with reason: %s", reason));
             if (this.pingIntervalTimer != null) {
                 this.pingIntervalTimer.cancel(true);
@@ -470,7 +480,7 @@ public abstract class Socket extends Emitter {
             if (this.pingTimeoutTimer != null) {
                 this.pingTimeoutTimer.cancel(true);
             }
-            this.readyState = "closed";
+            this.readyState = CLOSED;
             this.emit("close", reason, desc);
             this.onclose();
             // TODO:
