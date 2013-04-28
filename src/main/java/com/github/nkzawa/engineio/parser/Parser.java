@@ -38,7 +38,10 @@ public class Parser {
     }
 
     public static Packet decodePacket(String data) {
-        int type = Character.getNumericValue(data.charAt(0));
+        int type = -1;
+        try {
+            type = Character.getNumericValue(data.charAt(0));
+        } catch(IndexOutOfBoundsException e) {}
         if (type < 0 || type >= packets.size()) {
             return err;
         }
