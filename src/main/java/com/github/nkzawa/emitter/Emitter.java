@@ -80,7 +80,8 @@ public class Emitter {
 
     public List<Listener> listeners(String event) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
-        return new ArrayList<Listener>(callbacks);
+        return callbacks != null ?
+                new ArrayList<Listener>(callbacks) : new ArrayList<Listener>();
     }
 
     public boolean hasListeners(String event) {
