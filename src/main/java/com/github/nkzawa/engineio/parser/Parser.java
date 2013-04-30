@@ -114,6 +114,7 @@ public class Parser {
     }
 
     public static interface DecodePayloadCallback {
+
         public boolean call(Packet packet, int index, int total);
     }
 }

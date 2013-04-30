@@ -249,7 +249,7 @@ public abstract class Socket extends Emitter {
                                     transport[0].off(Transport.EVENT_ERROR, onerror);
                                     self.emit(EVENT_UPGRADE, transport);
                                     self.setTransport(transport[0]);
-                                    Packet packet = new Packet(Packet.UPGRADE, null);
+                                    Packet packet = new Packet(Packet.UPGRADE);
                                     transport[0].send(new Packet[]{packet});
                                     transport[0] = null;
                                     self.upgrading = false;
