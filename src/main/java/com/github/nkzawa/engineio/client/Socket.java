@@ -429,7 +429,7 @@ public abstract class Socket extends Emitter {
                 !this.upgrading && this.writeBuffer.size() != 0) {
             logger.info(String.format("flushing %d packets in socket", this.writeBuffer.size()));
             this.prevBufferLen = this.writeBuffer.size();
-            this.transport.send(this.writeBuffer.toArray(new Packet[0]));
+            this.transport.send(this.writeBuffer.toArray(new Packet[this.writeBuffer.size()]));
             this.emit(EVENT_FLUSH);
         }
     }
