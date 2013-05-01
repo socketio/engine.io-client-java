@@ -31,9 +31,6 @@ public abstract class Socket extends Emitter {
         put(CLOSED, "closed");
     }};
 
-    public static final String POLLING = "polling";
-    public static final String WEBSOCKET = "websocket";
-
     public static final String EVENT_OPEN = "open";
     public static final String EVENT_CLOSE = "close";
     public static final String EVENT_HANDSHAKE = "handshake";
@@ -116,8 +113,8 @@ public abstract class Socket extends Emitter {
         this.path = (opts.path != null ? opts.path : "/engine.io").replaceAll("/$", "") + "/";
         this.timestampParam = opts.timestampParam != null ? opts.timestampParam : "t";
         this.timestampRequests = opts.timestampRequests;
-        this.transports = new ArrayList<String>(Arrays.asList(
-                opts.transports != null ? opts.transports : new String[] {POLLING, WEBSOCKET}));
+        this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
+                opts.transports : new String[] {Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
 
         Socket.sockets.add(this);
@@ -151,9 +148,9 @@ public abstract class Socket extends Emitter {
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
 
-        if (WEBSOCKET.equals(name)) {
+        if (WebSocket.NAME.equals(name)) {
             return new WebSocket(opts);
-        } else if (POLLING.equals(name)) {
+        } else if (Polling.NAME.equals(name)) {
             return new PollingXHR(opts);
         }
 
@@ -513,7 +510,7 @@ public abstract class Socket extends Emitter {
         }
     }
 
-    private List<String > filterUpgrades(List<String> upgrades) {
+    /*package*/ List<String > filterUpgrades(List<String> upgrades) {
         List<String> filteredUpgrades = new ArrayList<String>();
         for (String upgrade : upgrades) {
             if (this.transports.contains(upgrade)) {
@@ -555,7 +552,7 @@ public abstract class Socket extends Emitter {
         }
     }
 
-    public static class Sockets extends ConcurrentLinkedQueue<Socket> {
+    public static class Sockets extends ArrayList<Socket> {
 
         public static final String EVENT_ADD = "add";
 

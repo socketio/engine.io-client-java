@@ -1,7 +1,6 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
-import com.github.nkzawa.engineio.client.Socket;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -22,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 
 public class WebSocket extends Transport {
 
+    public static final String NAME = "websocket";
+
     private WebSocketClient socket;
     private Future bufferedAmountId;
 
@@ -30,7 +31,7 @@ public class WebSocket extends Transport {
 
     public WebSocket(Options opts) {
         super(opts);
-        this.name = Socket.WEBSOCKET;
+        this.name = NAME;
     }
 
     protected void doOpen() {

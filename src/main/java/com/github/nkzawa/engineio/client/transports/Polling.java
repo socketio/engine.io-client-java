@@ -1,7 +1,6 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
-import com.github.nkzawa.engineio.client.Socket;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -16,6 +15,8 @@ abstract public class Polling extends Transport {
 
     private static final Logger logger = Logger.getLogger("engine.io-client:polling");
 
+    public static final String NAME = "polling";
+
     public static final String EVENT_POLL = "poll";
     public static final String EVENT_POLL_COMPLETE = "pollComplete";
 
@@ -24,7 +25,7 @@ abstract public class Polling extends Transport {
 
     public Polling(Options opts) {
         super(opts);
-        this.name = Socket.POLLING;
+        this.name = NAME;
     }
 
     protected void doOpen() {
