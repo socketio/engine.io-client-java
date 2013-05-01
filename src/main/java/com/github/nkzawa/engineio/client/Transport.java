@@ -57,7 +57,7 @@ public abstract class Transport extends Emitter {
         return this;
     }
 
-    public Emitter open() {
+    public Transport open() {
         if (this.readyState == CLOSED || this.readyState < 0) {
             this.readyState = OPENING;
             this.doOpen();
@@ -117,6 +117,5 @@ public abstract class Transport extends Emitter {
         public int port;
         public int policyPort;
         public Map<String, String> query;
-
     }
 }

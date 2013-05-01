@@ -78,11 +78,11 @@ public class PollingXHR extends Polling {
         this.pollXhr = req;
     }
 
-    private static class Request extends Emitter {
+    public static class Request extends Emitter {
 
-        private static final String EVENT_SUCCESS = "success";
-        private static final String EVENT_DATA = "data";
-        private static final String EVENT_ERROR = "error";
+        public static final String EVENT_SUCCESS = "success";
+        public static final String EVENT_DATA = "data";
+        public static final String EVENT_ERROR = "error";
 
         private static final ExecutorService xhrService = Executors.newCachedThreadPool();
 
@@ -149,22 +149,22 @@ public class PollingXHR extends Polling {
             });
         }
 
-        public void onSuccess() {
+        private void onSuccess() {
             this.emit(EVENT_SUCCESS);
             this.cleanup();
         }
 
-        public void onData(String data) {
+        private void onData(String data) {
             this.emit(EVENT_DATA, data);
             this.onSuccess();
         }
 
-        public void onError(Exception err) {
+        private void onError(Exception err) {
             this.emit(EVENT_ERROR, err);
             this.cleanup();
         }
 
-        public void cleanup() {
+        private void cleanup() {
             if (xhr != null) {
                 xhr.disconnect();
                 xhr = null;
@@ -177,10 +177,9 @@ public class PollingXHR extends Polling {
 
         public static class Options {
 
-            String uri;
-            String method;
-            String data;
-
+            public String uri;
+            public String method;
+            public String data;
         }
     }
 }

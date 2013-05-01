@@ -7,7 +7,7 @@ import java.util.Map;
 public class Parser {
 
     public static final int protocol = 2;
-    public static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
+    private static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
         put(Packet.OPEN, 0);
         put(Packet.CLOSE, 1);
         put(Packet.PING, 2);
@@ -16,7 +16,7 @@ public class Parser {
         put(Packet.UPGRADE, 5);
         put(Packet.NOOP, 6);
     }};
-    public static final Map<Integer, String> bipackets = new HashMap<Integer, String>();
+    private static final Map<Integer, String> bipackets = new HashMap<Integer, String>();
     static {
         for (Map.Entry<String, Integer> entry : packets.entrySet()) {
             bipackets.put(entry.getValue(), entry.getKey());

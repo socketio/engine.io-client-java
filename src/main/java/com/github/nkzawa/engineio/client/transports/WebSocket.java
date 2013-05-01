@@ -96,7 +96,7 @@ public class WebSocket extends Transport {
     }
 
     @Override
-    public void onClose() {
+    protected void onClose() {
         if (this.bufferedAmountId != null) {
             this.bufferedAmountId.cancel(true);
         }
