@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class PollingXHR extends Polling {
 
-    private static final Logger logger = Logger.getLogger("engine.io-client:polling-xhr");
+    private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
     private Request sendXhr;
     private Request pollXhr;
@@ -57,7 +57,7 @@ public class PollingXHR extends Polling {
     }
 
     protected void doPoll() {
-        logger.info("xhr poll");
+        logger.fine("xhr poll");
         Request req = this.request();
         final PollingXHR self = this;
         req.on(Request.EVENT_DATA, new Listener() {
@@ -113,7 +113,7 @@ public class PollingXHR extends Polling {
                 xhr.setRequestProperty("Content-type", "text/plain;charset=UTF-8");
             }
 
-            logger.info(String.format("sending xhr with url %s | data %s", this.uri, this.data));
+            logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
             xhrService.submit(new Runnable() {
                 @Override
                 public void run() {

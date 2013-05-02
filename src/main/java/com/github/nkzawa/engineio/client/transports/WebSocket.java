@@ -131,9 +131,7 @@ public class WebSocket extends Transport {
             _query = "?" + _query;
         }
 
-        return new StringBuilder()
-                .append(schema).append("://").append(this.hostname)
-                .append(port).append(this.path).append(_query).toString();
+        return schema + "://" + this.hostname + port + this.path + _query;
     }
 
     private boolean check() {

@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 
 public abstract class Socket extends Emitter {
 
-    private static final Logger logger = Logger.getLogger("engine.io-client:socket");
+    private static final Logger logger = Logger.getLogger(Socket.class.getName());
 
     private static final int OPENING = 0;
     private static final int OPEN = 1;
@@ -129,7 +129,7 @@ public abstract class Socket extends Emitter {
     }
 
     private Transport createTransport(String name) {
-        logger.info(String.format("creating transport '%s'", name));
+        logger.fine(String.format("creating transport '%s'", name));
         Map<String, String> query = new HashMap<String, String>(this.query);
 
         query.put("EIO", String.valueOf(Parser.protocol));
@@ -161,7 +161,7 @@ public abstract class Socket extends Emitter {
         final Socket self = this;
 
         if (this.transport != null) {
-            logger.info("clearing existing transport");
+            logger.fine("clearing existing transport");
             this.transport.off();
         }
 
@@ -191,7 +191,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void probe(final String name) {
-        logger.info(String.format("probing transport '%s'", name));
+        logger.fine(String.format("probing transport '%s'", name));
         final Transport[] transport = new Transport[] {this.createTransport(name)};
         final boolean[] failed = new boolean[] {false};
         final Socket self = this;
@@ -210,7 +210,7 @@ public abstract class Socket extends Emitter {
 
                 transport[0].close();
                 transport[0] = null;
-                logger.info(String.format("probing transport '%s' failed because of error: %s", name, err));
+                logger.fine(String.format("probing transport '%s' failed because of error: %s", name, err));
                 self.emit(EVENT_ERROR, error);
             }
         };
@@ -220,7 +220,7 @@ public abstract class Socket extends Emitter {
             public void call(Object... args) {
                 if (failed[0]) return;
 
-                logger.info(String.format("probe transport '%s' opened", name));
+                logger.fine(String.format("probe transport '%s' opened", name));
                 Packet packet = new Packet(Packet.PING, "probe");
                 transport[0].send(new Packet[] {packet});
                 transport[0].once(Transport.EVENT_PACKET, new Listener() {
@@ -229,11 +229,11 @@ public abstract class Socket extends Emitter {
                         if (failed[0]) return;
                         Packet msg = (Packet)args[0];
                         if (Packet.PONG.equals(msg.type) && "probe".equals(msg.data)) {
-                            logger.info(String.format("probe transport '%s' pong", name));
+                            logger.fine(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
 
-                            logger.info(String.format("pausing current transport '%s'", self.transport.name));
+                            logger.fine(String.format("pausing current transport '%s'", self.transport.name));
                             ((Polling)self.transport).pause(new Runnable() {
                                 @Override
                                 public void run() {
@@ -242,7 +242,7 @@ public abstract class Socket extends Emitter {
                                         return;
                                     }
 
-                                    logger.info("changing transport and sending upgrade packet");
+                                    logger.fine("changing transport and sending upgrade packet");
                                     transport[0].off(Transport.EVENT_ERROR, onerror);
                                     self.emit(EVENT_UPGRADE, transport);
                                     self.setTransport(transport[0]);
@@ -254,7 +254,7 @@ public abstract class Socket extends Emitter {
                                 }
                             });
                         } else {
-                            logger.info(String.format("probe transport '%s' failed", name));
+                            logger.fine(String.format("probe transport '%s' failed", name));
                             EngineIOException err = new EngineIOException("probe error");
                             //err.transport = transport[0].name;
                             self.emit(EVENT_ERROR, err);
@@ -270,7 +270,7 @@ public abstract class Socket extends Emitter {
             @Override
             public void call(Object... args) {
                 if (transport[0] != null) {
-                    logger.info("socket closed prematurely - aborting probe");
+                    logger.fine("socket closed prematurely - aborting probe");
                     failed[0] = true;
                     transport[0].close();
                     transport[0] = null;
@@ -283,7 +283,7 @@ public abstract class Socket extends Emitter {
             public void call(Object... args) {
                 Transport to = (Transport)args[0];
                 if (transport[0] != null && !to.name.equals(transport[0].name)) {
-                    logger.info(String.format("'%s' works - aborting '%s'", to.name, transport[0].name));
+                    logger.fine(String.format("'%s' works - aborting '%s'", to.name, transport[0].name));
                     transport[0].close();
                     transport[0] = null;
                 }
@@ -294,14 +294,14 @@ public abstract class Socket extends Emitter {
     }
 
     private void onOpen() {
-        logger.info("socket open");
+        logger.fine("socket open");
         this.readyState = OPEN;
         this.emit(EVENT_OPEN);
         this.onopen();
         this.flush();
 
         if (this.readyState == OPEN && this.upgrade && this.transport instanceof Polling) {
-            logger.info("starting upgrade probes");
+            logger.fine("starting upgrade probes");
             for (String upgrade: this.upgrades) {
                 this.probe(upgrade);
             }
@@ -310,7 +310,7 @@ public abstract class Socket extends Emitter {
 
     private void onPacket(Packet packet) {
         if (this.readyState == OPENING || this.readyState == OPEN) {
-            logger.info(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
+            logger.fine(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
 
             this.emit(EVENT_PACKET, packet);
             this.emit(EVENT_HEARTBEAT);
@@ -330,7 +330,7 @@ public abstract class Socket extends Emitter {
                 this.onmessage(packet.data);
             }
         } else {
-            logger.info(String.format("packet received with socket readyState '%s'", STATE_MAP.get(this.readyState)));
+            logger.fine(String.format("packet received with socket readyState '%s'", STATE_MAP.get(this.readyState)));
         }
     }
 
@@ -389,7 +389,7 @@ public abstract class Socket extends Emitter {
         this.pingIntervalTimer = this.heartbeatScheduler.schedule(new Runnable() {
             @Override
             public void run() {
-                logger.info(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
+                logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
                 self.sendPacket(Packet.PING);
                 self.onHeartbeat(self.pingTimeout);
             }
@@ -424,7 +424,7 @@ public abstract class Socket extends Emitter {
     private void flush() {
         if (this.readyState != CLOSED && this.transport.writable &&
                 !this.upgrading && this.writeBuffer.size() != 0) {
-            logger.info(String.format("flushing %d packets in socket", this.writeBuffer.size()));
+            logger.fine(String.format("flushing %d packets in socket", this.writeBuffer.size()));
             this.prevBufferLen = this.writeBuffer.size();
             this.transport.send(this.writeBuffer.toArray(new Packet[this.writeBuffer.size()]));
             this.emit(EVENT_FLUSH);
@@ -467,7 +467,7 @@ public abstract class Socket extends Emitter {
     public Socket close() {
         if (this.readyState == OPENING || this.readyState == OPEN) {
             this.onClose("forced close");
-            logger.info("socket closing - telling transport to close");
+            logger.fine("socket closing - telling transport to close");
             this.transport.close();
             this.transport.off();
         }
@@ -476,7 +476,7 @@ public abstract class Socket extends Emitter {
     }
 
     private void onError(Exception err) {
-        logger.info(String.format("socket error %s", err));
+        logger.fine(String.format("socket error %s", err));
         this.emit(EVENT_ERROR, err);
         this.onClose("transport error", err);
     }
@@ -487,7 +487,7 @@ public abstract class Socket extends Emitter {
 
     private void onClose(String reason, Exception desc) {
         if (this.readyState == OPENING || this.readyState == OPEN) {
-            logger.info(String.format("socket close with reason: %s", reason));
+            logger.fine(String.format("socket close with reason: %s", reason));
             if (this.pingIntervalTimer != null) {
                 this.pingIntervalTimer.cancel(true);
             }

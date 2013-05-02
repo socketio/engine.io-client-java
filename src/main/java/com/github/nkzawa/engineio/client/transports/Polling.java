@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 abstract public class Polling extends Transport {
 
-    private static final Logger logger = Logger.getLogger("engine.io-client:polling");
+    private static final Logger logger = Logger.getLogger(Polling.class.getName());
 
     public static final String NAME = "polling";
 
@@ -41,7 +41,7 @@ abstract public class Polling extends Transport {
         final Runnable pause = new Runnable() {
             @Override
             public void run() {
-                logger.info("paused");
+                logger.fine("paused");
                 self.readyState = PAUSED;
                 onPause.run();
             }
@@ -51,12 +51,12 @@ abstract public class Polling extends Transport {
             final int[] total = new int[] {0};
 
             if (this.polling) {
-                logger.info("we are currently polling - waiting to pause");
+                logger.fine("we are currently polling - waiting to pause");
                 total[0]++;
                 this.once(EVENT_POLL_COMPLETE, new Listener() {
                     @Override
                     public void call(Object... args) {
-                        logger.info("pre-pause polling complete");
+                        logger.fine("pre-pause polling complete");
                         if (--total[0] == 0) {
                             pause.run();
                         }
@@ -65,12 +65,12 @@ abstract public class Polling extends Transport {
             }
 
             if (!this.writable) {
-                logger.info("we are currently writing - waiting to pause");
+                logger.fine("we are currently writing - waiting to pause");
                 total[0]++;
                 this.once(EVENT_DRAIN, new Listener() {
                     @Override
                     public void call(Object... args) {
-                        logger.info("pre-pause writing complete");
+                        logger.fine("pre-pause writing complete");
                         if (--total[0] == 0) {
                             pause.run();
                         }
@@ -83,7 +83,7 @@ abstract public class Polling extends Transport {
     }
 
     private void poll() {
-        logger.info("polling");
+        logger.fine("polling");
         this.polling = true;
         this.doPoll();
         this.emit(EVENT_POLL);
@@ -91,7 +91,7 @@ abstract public class Polling extends Transport {
 
     protected void onData(String data) {
         final Polling self = this;
-        logger.info(String.format("polling got data %s", data));
+        logger.fine(String.format("polling got data %s", data));
 
         Parser.decodePayload(data, new Parser.DecodePayloadCallback() {
             @Override
@@ -117,13 +117,13 @@ abstract public class Polling extends Transport {
             if (this.readyState == OPEN) {
                 this.poll();
             } else {
-                logger.info(String.format("ignoring poll - transport state '%s'", STATE_MAP.get(this.readyState)));
+                logger.fine(String.format("ignoring poll - transport state '%s'", STATE_MAP.get(this.readyState)));
             }
         }
     }
 
     protected void doClose() {
-        logger.info("sending close packet");
+        logger.fine("sending close packet");
         this.send(new Packet[] {new Packet(Packet.CLOSE, null)});
     }
 
@@ -162,9 +162,7 @@ abstract public class Polling extends Transport {
             _query = "?" + _query;
         }
 
-        return new StringBuilder()
-                .append(schema).append("://").append(this.hostname)
-                .append(port).append(this.path).append(_query).toString();
+        return schema + "://" + this.hostname + port + this.path + _query;
     }
 
     abstract protected void doWrite(String data, Runnable fn);
