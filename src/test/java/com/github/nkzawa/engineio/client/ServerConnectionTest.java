@@ -1,5 +1,6 @@
 package com.github.nkzawa.engineio.client;
 
+import com.github.nkzawa.emitter.Emitter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,11 +13,14 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.concurrent.*;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 @RunWith(JUnit4.class)
-public class ConnectionTest {
+public class ServerConnectionTest {
 
     final static int TIMEOUT = 3000;
     final static int PORT = 3000;
@@ -131,6 +135,84 @@ public class ConnectionTest {
 
         assertThat(events.take(), is("hello client"));
         assertThat(events.take(), is("hi"));
+        socket.close();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void handshake() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<Object[]> events = new LinkedBlockingQueue<Object[]>();
+
+        socket = new Socket("ws://localhost:" + PORT) {
+            @Override
+            public void onopen() {}
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+        };
+        socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println(String.format("on handshake: %s", args.length));
+                events.offer(args);
+            }
+        });
+        socket.open();
+
+        Object[] args = events.take();
+        assertThat(args.length, is(1));
+        assertThat(args[0], is(instanceOf(Socket.HandshakeData.class)));
+
+        Socket.HandshakeData data = (Socket.HandshakeData)args[0];
+        assertThat(data.sid, is(notNullValue()));
+        assertThat(data.upgrades, is(notNullValue()));
+        assertThat(data.upgrades, is(not(empty())));
+        assertThat(data.pingTimeout, is(greaterThan((long)0)));
+        assertThat(data.pingInterval, is(greaterThan((long)0)));
+
+        socket.close();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void upgrade() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<Object[]> events = new LinkedBlockingQueue<Object[]>();
+
+        socket = new Socket("ws://localhost:" + PORT) {
+            @Override
+            public void onopen() {}
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+        };
+        socket.on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println(String.format("on upgrading: %s", args.length));
+                events.offer(args);
+            }
+        });
+        socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println(String.format("on upgrade: %s", args.length));
+                events.offer(args);
+            }
+        });
+        socket.open();
+
+        Object[] args1 = events.take();
+        assertThat(args1.length, is(1));
+        assertThat(args1[0], is(instanceOf(Transport.class)));
+        Transport transport1 = (Transport)args1[0];
+        assertThat(transport1, is(notNullValue()));
+
+        Object[] args2 = events.take();
+        assertThat(args2.length, is(1));
+        assertThat(args2[0], is(instanceOf(Transport.class)));
+        Transport transport2 = (Transport)args2[0];
+        assertThat(transport2, is(notNullValue()));
+
         socket.close();
     }
 }

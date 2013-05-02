@@ -6,9 +6,7 @@ import com.github.nkzawa.engineio.client.transports.PollingXHR;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.Gson;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -19,6 +17,8 @@ import java.util.logging.Logger;
 public abstract class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
+
+    private static final Gson gson = new Gson();
 
     private static final int OPENING = 0;
     private static final int OPEN = 1;
@@ -244,7 +244,7 @@ public abstract class Socket extends Emitter {
 
                                     logger.fine("changing transport and sending upgrade packet");
                                     transport[0].off(Transport.EVENT_ERROR, onerror);
-                                    self.emit(EVENT_UPGRADE, transport);
+                                    self.emit(EVENT_UPGRADE, transport[0]);
                                     self.setTransport(transport[0]);
                                     Packet packet = new Packet(Packet.UPGRADE);
                                     transport[0].send(new Packet[]{packet});
@@ -316,7 +316,7 @@ public abstract class Socket extends Emitter {
             this.emit(EVENT_HEARTBEAT);
 
             if (Packet.OPEN.equals(packet.type)) {
-                this.onHandshake(new JsonParser().parse(packet.data).getAsJsonObject());
+                this.onHandshake(gson.fromJson(packet.data, HandshakeData.class));
             } else if (Packet.PONG.equals(packet.type)) {
                 this.ping();
             } else if (Packet.ERROR.equals(packet.type)) {
@@ -334,19 +334,13 @@ public abstract class Socket extends Emitter {
         }
     }
 
-    private void onHandshake(JsonObject data) {
+    private void onHandshake(HandshakeData data) {
         this.emit(EVENT_HANDSHAKE, data);
-        this.id = data.get("sid").getAsString();
-        this.transport.query.put("sid", data.get("sid").getAsString());
-
-        List<String> upgrades = new ArrayList<String>();
-        for (JsonElement upgrade : data.get("upgrades").getAsJsonArray()) {
-            upgrades.add(upgrade.getAsString());
-        }
-        this.upgrades = this.filterUpgrades(upgrades);
-
-        this.pingInterval = data.get("pingInterval").getAsLong();
-        this.pingTimeout = data.get("pingTimeout").getAsLong();
+        this.id = data.sid;
+        this.transport.query.put("sid", data.sid);
+        this.upgrades = this.filterUpgrades(data.upgrades);
+        this.pingInterval = data.pingInterval;
+        this.pingTimeout = data.pingTimeout;
         this.onOpen();
         this.ping();
 
@@ -526,6 +520,7 @@ public abstract class Socket extends Emitter {
 
     public abstract void onclose();
 
+
     public static class Options extends Transport.Options {
 
         public String host;
@@ -557,5 +552,13 @@ public abstract class Socket extends Emitter {
         public static final String EVENT_ADD = "add";
 
         public Emitter evs = new Emitter();
+    }
+
+    public static class HandshakeData {
+
+        public String sid;
+        public List<String> upgrades;
+        public long pingInterval;
+        public long pingTimeout;
     }
 }
