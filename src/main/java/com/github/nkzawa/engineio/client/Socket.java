@@ -4,6 +4,7 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.PollingXHR;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
+import com.github.nkzawa.engineio.parser.HandshakeData;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.google.gson.Gson;
@@ -552,13 +553,5 @@ public abstract class Socket extends Emitter {
         public static final String EVENT_ADD = "add";
 
         public Emitter evs = new Emitter();
-    }
-
-    public static class HandshakeData {
-
-        public String sid;
-        public List<String> upgrades;
-        public long pingInterval;
-        public long pingTimeout;
     }
 }

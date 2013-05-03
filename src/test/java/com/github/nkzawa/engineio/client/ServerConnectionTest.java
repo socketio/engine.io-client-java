@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client;
 
 import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.engineio.parser.HandshakeData;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,9 +14,10 @@ import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.concurrent.*;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
@@ -161,9 +163,9 @@ public class ServerConnectionTest {
 
         Object[] args = events.take();
         assertThat(args.length, is(1));
-        assertThat(args[0], is(instanceOf(Socket.HandshakeData.class)));
+        assertThat(args[0], is(instanceOf(HandshakeData.class)));
 
-        Socket.HandshakeData data = (Socket.HandshakeData)args[0];
+        HandshakeData data = (HandshakeData)args[0];
         assertThat(data.sid, is(notNullValue()));
         assertThat(data.upgrades, is(notNullValue()));
         assertThat(data.upgrades, is(not(empty())));
