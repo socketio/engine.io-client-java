@@ -15,6 +15,12 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Logger;
 
+
+/**
+ * The socket class for Event.IO Client.
+ *
+ * @see <a href="https://github.com/LearnBoost/engine.io-client">https://github.com/LearnBoost/engine.io-client</a>
+ */
 public abstract class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
@@ -32,8 +38,36 @@ public abstract class Socket extends Emitter {
         put(CLOSED, "closed");
     }};
 
+    /**
+     * Called on successful connection.
+     */
     public static final String EVENT_OPEN = "open";
+
+    /**
+     * Called on disconnection.
+     */
     public static final String EVENT_CLOSE = "close";
+
+    /**
+     * Called when data is received from the server.
+     */
+    public static final String EVENT_MESSAGE = "message";
+
+    /**
+     * Called when an error occurs.
+     */
+    public static final String EVENT_ERROR = "error";
+
+    /**
+     * Called on completing a buffer flush.
+     */
+    public static final String EVENT_FLUSH = "flush";
+
+    /**
+     * Called after `drain` event of transport if writeBuffer is empty.
+     */
+    public static final String EVENT_DRAIN = "drain";
+
     public static final String EVENT_HANDSHAKE = "handshake";
     public static final String EVENT_UPGRADING = "upgrading";
     public static final String EVENT_UPGRADE = "upgrade";
@@ -41,17 +75,20 @@ public abstract class Socket extends Emitter {
     public static final String EVENT_PACKET_CREATE = "packetCreate";
     public static final String EVENT_HEARTBEAT = "heartbeat";
     public static final String EVENT_DATA = "data";
-    public static final String EVENT_MESSAGE = "message";
-    public static final String EVENT_ERROR = "error";
-    public static final String EVENT_DRAIN = "drain";
-    public static final String EVENT_FLUSH = "flush";
 
     private static final Runnable noop = new Runnable() {
         @Override
         public void run() {}
     };
 
+    /**
+     * List of Socket instances.
+     */
     public static final Sockets sockets = new Sockets();
+
+    /**
+     * The protocol version.
+     */
     public static final int protocol = Parser.protocol;
 
     private boolean secure;
@@ -80,6 +117,12 @@ public abstract class Socket extends Emitter {
     private ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 
 
+    /**
+     * Creates a socket.
+     *
+     * @param uri URI to connect.
+     * @throws URISyntaxException
+     */
     public Socket(String uri) throws URISyntaxException {
         this(uri, null);
     }
@@ -88,6 +131,13 @@ public abstract class Socket extends Emitter {
         this(uri, null);
     }
 
+    /**
+     * Creates a socket with options.
+     *
+     * @param uri URI to connect.
+     * @param opts options for socket
+     * @throws URISyntaxException
+     */
     public Socket(String uri, Options opts) throws URISyntaxException {
         this(new URI(uri), opts);
     }
@@ -115,13 +165,16 @@ public abstract class Socket extends Emitter {
         this.timestampParam = opts.timestampParam != null ? opts.timestampParam : "t";
         this.timestampRequests = opts.timestampRequests;
         this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
-                opts.transports : new String[] {Polling.NAME, WebSocket.NAME}));
+                opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
 
         Socket.sockets.add(this);
         Socket.sockets.evs.emit(Sockets.EVENT_ADD, this);
     }
 
+    /**
+     * Connects the client.
+     */
     public void open() {
         this.readyState = OPENING;
         Transport transport = this.createTransport(this.transports.get(0));
@@ -434,10 +487,21 @@ public abstract class Socket extends Emitter {
         this.send(msg, fn);
     }
 
+    /**
+     * Sends a message.
+     *
+     * @param msg
+     */
     public void send(String msg) {
         this.send(msg, null);
     }
 
+    /**
+     * Sends a message.
+     *
+     * @param msg
+     * @param fn callback to be called on drain
+     */
     public void send(String msg, Runnable fn) {
         this.sendPacket(Packet.MESSAGE, msg, fn);
     }
@@ -459,6 +523,11 @@ public abstract class Socket extends Emitter {
         this.flush();
     }
 
+    /**
+     * Disconnects the client.
+     *
+     * @return a reference to to this object.
+     */
     public Socket close() {
         if (this.readyState == OPENING || this.readyState == OPEN) {
             this.onClose("forced close");
@@ -524,10 +593,18 @@ public abstract class Socket extends Emitter {
 
     public static class Options extends Transport.Options {
 
+        /**
+         * List of transport names.
+         */
+        public String[] transports;
+
+        /**
+         * Whether to upgrade the transport. Defaults to `true`.
+         */
+        public boolean upgrade = true;
+
         public String host;
         public String query;
-        public String[] transports;
-        public boolean upgrade = true;
 
 
         private static Options fromURI(URI uri, Options opts) {
