@@ -3,7 +3,17 @@
 
   <groupId>com.github.nkzawa</groupId>
   <artifactId>engine.io-client</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
+
+  <properties>
+    <github.global.server>github</github.global.server>
+  </properties>
+
+  <scm>
+    <url>https://github.com/nkzawa/engine.io-client.java</url>
+    <connection>scm:git:git://github.com/nkzawa/engine.io-client.java.git</connection>
+    <developerConnection>scm:git:git@github.com:nkzawa/engine.io-client.java.git</developerConnection>
+  </scm>
 
   <dependencies>
     <dependency>
@@ -72,6 +82,22 @@
                   <argument>install</argument>
               </arguments>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.github</groupId>
+        <artifactId>site-maven-plugin</artifactId>
+        <version>0.8</version>
+        <configuration>
+          <message>Creating site for ${project.version}</message>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>site</goal>
+            </goals>
+            <phase>site</phase>
           </execution>
         </executions>
       </plugin>

@@ -3,13 +3,18 @@
 
 This is the Engine.IO Client Library for Java, which is simply ported from the [client](https://github.com/LearnBoost/engine.io-client) for JavaScript.
 
-## Hello World
-Engine.IO-client.java has the similar api with the client for js. You can use `Socket` to connect as follows:
+See also: https://github.com/nkzawa/socket.io-client.java
+
+## Usage
+Engine.IO-client.java has the similar api with the js client. You can use `Socket` to connect:
 
 ```java
-Socket socket = new Socket("ws://localhost") {
+socket = new Socket("ws://localhost") {
   @Override
-  public void onopen() {}
+  public void onopen() {
+    socket.send("hi");
+    socket.close();
+  }
 
   @Override
   public void onmessage(String data) {}
@@ -20,8 +25,24 @@ Socket socket = new Socket("ws://localhost") {
 socket.open();
 ```
 
+You can receive events as follows:
+
+```java
+socket.on(Socket.EVENT_ERROR, new Emitter.Listener() {
+  @Override
+  public void call(Object... args) {
+    Exception err = (Exception)args[0];
+  }
+});
+```
+
+See the Javadoc for more details.
+
+http://nkzawa.github.io/engine.io-client.java/apidocs/
+
+
 ## Features
-This library supports all of the features the JS client does, including events, options and upgrage, except the Flash transport.
+This library supports all of the features the JS client does, including events, options and upgraging transport.
 
 ## License
 
