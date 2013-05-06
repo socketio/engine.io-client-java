@@ -38,13 +38,13 @@ abstract public class Polling extends Transport {
             public void run() {
                 final Polling self = Polling.this;
 
-                Polling.this.readyState = PAUSED;
+                Polling.this.readyState = ReadyState.PAUSED;
 
                 final Runnable pause = new Runnable() {
                     @Override
                     public void run() {
                         logger.fine("paused");
-                        self.readyState = PAUSED;
+                        self.readyState = ReadyState.PAUSED;
                         onPause.run();
                     }
                 };
@@ -100,7 +100,7 @@ abstract public class Polling extends Transport {
         Parser.decodePayload(data, new Parser.DecodePayloadCallback() {
             @Override
             public boolean call(Packet packet, int index, int total) {
-                if (self.readyState == OPENING) {
+                if (self.readyState == ReadyState.OPENING) {
                     self.onOpen();
                 }
 
@@ -114,14 +114,14 @@ abstract public class Polling extends Transport {
             }
         });
 
-        if (this.readyState != CLOSED) {
+        if (this.readyState != ReadyState.CLOSED) {
             this.polling = false;
             this.emit(EVENT_POLL_COMPLETE);
 
-            if (this.readyState == OPEN) {
+            if (this.readyState == ReadyState.OPEN) {
                 this.poll();
             } else {
-                logger.fine(String.format("ignoring poll - transport state '%s'", STATE_MAP.get(this.readyState)));
+                logger.fine(String.format("ignoring poll - transport state '%s'", this.readyState));
             }
         }
     }

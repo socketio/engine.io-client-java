@@ -5,21 +5,18 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public abstract class Transport extends Emitter {
 
-    protected static final int OPENING = 0;
-    protected static final int OPEN = 1;
-    protected static final int CLOSED = 2;
-    protected static final int PAUSED = 3;
-    protected static final Map<Integer, String> STATE_MAP = new HashMap<Integer, String>() {{
-        put(OPENING, "opening");
-        put(OPEN, "open");
-        put(CLOSED, "closed");
-        put(PAUSED, "paused");
-    }};
+    protected enum ReadyState {
+        OPENING, OPEN, CLOSED, PAUSED;
+
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
+    }
 
     public static final String EVENT_OPEN = "open";
     public static final String EVENT_CLOSE = "close";
@@ -34,11 +31,11 @@ public abstract class Transport extends Emitter {
     protected boolean secure;
     protected boolean timestampRequests;
     protected int port;
-    protected int readyState = -1;
     protected String path;
     protected String hostname;
     protected String timestampParam;
 
+    protected ReadyState readyState;
 
     public Transport(Options opts) {
         this.path = opts.path;
@@ -61,8 +58,8 @@ public abstract class Transport extends Emitter {
         exec(new Runnable() {
             @Override
             public void run() {
-                if (Transport.this.readyState == CLOSED || Transport.this.readyState < 0) {
-                    Transport.this.readyState = OPENING;
+                if (Transport.this.readyState == ReadyState.CLOSED || Transport.this.readyState == null) {
+                    Transport.this.readyState = ReadyState.OPENING;
                     Transport.this.doOpen();
                 }
             }
@@ -74,7 +71,7 @@ public abstract class Transport extends Emitter {
         exec(new Runnable() {
             @Override
             public void run() {
-                if (Transport.this.readyState == OPENING || Transport.this.readyState == OPEN) {
+                if (Transport.this.readyState == ReadyState.OPENING || Transport.this.readyState == ReadyState.OPEN) {
                     Transport.this.doClose();
                     Transport.this.onClose();
                 }
@@ -87,7 +84,7 @@ public abstract class Transport extends Emitter {
         exec(new Runnable() {
             @Override
             public void run() {
-                if (Transport.this.readyState == OPEN) {
+                if (Transport.this.readyState == ReadyState.OPEN) {
                     Transport.this.write(packets);
                 } else {
                     throw new RuntimeException("Transport not open");
@@ -97,7 +94,7 @@ public abstract class Transport extends Emitter {
     }
 
     protected void onOpen() {
-        this.readyState = OPEN;
+        this.readyState = ReadyState.OPEN;
         this.writable = true;
         this.emit(EVENT_OPEN);
     }
@@ -111,7 +108,7 @@ public abstract class Transport extends Emitter {
     }
 
     protected void onClose() {
-        this.readyState = CLOSED;
+        this.readyState = ReadyState.CLOSED;
         this.emit(EVENT_CLOSE);
     }
 
