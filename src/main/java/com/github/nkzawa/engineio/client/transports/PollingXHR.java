@@ -2,6 +2,7 @@ package com.github.nkzawa.engineio.client.transports;
 
 
 import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.engineio.client.EventThread;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -42,7 +43,7 @@ public class PollingXHR extends Polling {
         req.on(Request.EVENT_SUCCESS, new Listener() {
             @Override
             public void call(Object... args) {
-                exec(new Runnable() {
+                EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
                         fn.run();
@@ -53,7 +54,7 @@ public class PollingXHR extends Polling {
         req.on(Request.EVENT_ERROR, new Listener() {
             @Override
             public void call(final Object... args) {
-                exec(new Runnable() {
+                EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
                         Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
@@ -73,7 +74,7 @@ public class PollingXHR extends Polling {
         req.on(Request.EVENT_DATA, new Listener() {
             @Override
             public void call(final Object... args) {
-                exec(new Runnable() {
+                EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
                         String data = args.length > 0 ? (String) args[0] : null;
@@ -85,7 +86,7 @@ public class PollingXHR extends Polling {
         req.on(Request.EVENT_ERROR, new Listener() {
             @Override
             public void call(final Object... args) {
-                exec(new Runnable() {
+                EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
                         Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception) args[0] : null;

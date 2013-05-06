@@ -7,9 +7,9 @@ import java.util.concurrent.ThreadFactory;
 
 
 /**
- * The main thread for Engine.IO Client.
+ * The main thread for event loop.
  */
-class EventThread extends Thread {
+public class EventThread extends Thread {
 
     private static final ExecutorService service = Executors.newSingleThreadExecutor(new ThreadFactory() {
         @Override

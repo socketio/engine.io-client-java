@@ -55,7 +55,7 @@ public abstract class Transport extends Emitter {
     }
 
     public Transport open() {
-        exec(new Runnable() {
+        EventThread.exec(new Runnable() {
             @Override
             public void run() {
                 if (Transport.this.readyState == ReadyState.CLOSED || Transport.this.readyState == null) {
@@ -68,7 +68,7 @@ public abstract class Transport extends Emitter {
     }
 
     public Transport close() {
-        exec(new Runnable() {
+        EventThread.exec(new Runnable() {
             @Override
             public void run() {
                 if (Transport.this.readyState == ReadyState.OPENING || Transport.this.readyState == ReadyState.OPEN) {
@@ -81,7 +81,7 @@ public abstract class Transport extends Emitter {
     }
 
     public void send(final Packet[] packets) {
-        exec(new Runnable() {
+        EventThread.exec(new Runnable() {
             @Override
             public void run() {
                 if (Transport.this.readyState == ReadyState.OPEN) {
@@ -117,14 +117,6 @@ public abstract class Transport extends Emitter {
     abstract protected void doOpen();
 
     abstract protected void doClose();
-
-    protected static void exec(Runnable task) {
-        EventThread.exec(task);
-    }
-
-    protected static void nextTick(Runnable task) {
-        EventThread.nextTick(task);
-    }
 
 
     public static class Options {

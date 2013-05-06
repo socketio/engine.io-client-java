@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
+import com.github.nkzawa.engineio.client.EventThread;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -33,7 +34,7 @@ abstract public class Polling extends Transport {
     }
 
     public void pause(final Runnable onPause) {
-        exec(new Runnable() {
+        EventThread.exec(new Runnable() {
             @Override
             public void run() {
                 final Polling self = Polling.this;
@@ -50,7 +51,7 @@ abstract public class Polling extends Transport {
                 };
 
                 if (Polling.this.polling || !Polling.this.writable) {
-                    final int[] total = new int[] {0};
+                    final int[] total = new int[]{0};
 
                     if (Polling.this.polling) {
                         logger.fine("we are currently polling - waiting to pause");

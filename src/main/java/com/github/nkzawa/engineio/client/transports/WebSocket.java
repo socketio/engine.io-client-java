@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
+import com.github.nkzawa.engineio.client.EventThread;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
@@ -44,7 +45,7 @@ public class WebSocket extends Transport {
             this.socket = new WebSocketClient(new URI(this.uri()), new Draft_17()) {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
-                    exec(new Runnable() {
+                    EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
                             self.onOpen();
@@ -53,7 +54,7 @@ public class WebSocket extends Transport {
                 }
                 @Override
                 public void onClose(int i, String s, boolean b) {
-                    exec(new Runnable() {
+                    EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
                             self.onClose();
@@ -62,7 +63,7 @@ public class WebSocket extends Transport {
                 }
                 @Override
                 public void onMessage(final String s) {
-                    exec(new Runnable() {
+                    EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
                             self.onData(s);
@@ -71,7 +72,7 @@ public class WebSocket extends Transport {
                 }
                 @Override
                 public void onError(final Exception e) {
-                    exec(new Runnable() {
+                    EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
                             self.onError("websocket error", e);
@@ -104,7 +105,7 @@ public class WebSocket extends Transport {
             this.bufferedAmountId = this.drainScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    exec(new Runnable() {
+                    EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
                             if (!self.socket.getConnection().hasBufferedData()) {
@@ -116,7 +117,7 @@ public class WebSocket extends Transport {
                 }
             }, 50, 50, TimeUnit.MILLISECONDS);
         } else {
-            nextTick(ondrain);
+            EventThread.nextTick(ondrain);
         }
     }
 
