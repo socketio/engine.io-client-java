@@ -108,8 +108,8 @@ public abstract class Socket extends Emitter {
     private List<String> transports;
     private List<String> upgrades;
     private Map<String, String> query;
-    private ConcurrentLinkedQueue<Packet> writeBuffer = new ConcurrentLinkedQueue<Packet>();
-    private ConcurrentLinkedQueue<Runnable> callbackBuffer = new ConcurrentLinkedQueue<Runnable>();
+    private Queue<Packet> writeBuffer = new LinkedList<Packet>();
+    private Queue<Runnable> callbackBuffer = new LinkedList<Runnable>();
     private Transport transport;
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
@@ -176,10 +176,15 @@ public abstract class Socket extends Emitter {
      * Connects the client.
      */
     public void open() {
-        this.readyState = OPENING;
-        Transport transport = this.createTransport(this.transports.get(0));
-        this.setTransport(transport);
-        transport.open();
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                Socket.this.readyState = OPENING;
+                Transport transport = Socket.this.createTransport(Socket.this.transports.get(0));
+                Socket.this.setTransport(transport);
+                transport.open();
+            }
+        });
     }
 
     private Transport createTransport(String name) {
@@ -409,7 +414,7 @@ public abstract class Socket extends Emitter {
         }
     };
 
-    private synchronized void onHeartbeat(long timeout) {
+    private void onHeartbeat(long timeout) {
         if (this.pingTimeoutTimer != null) {
             pingTimeoutTimer.cancel(true);
         }
@@ -422,13 +427,18 @@ public abstract class Socket extends Emitter {
         this.pingTimeoutTimer = this.heartbeatScheduler.schedule(new Runnable() {
             @Override
             public void run() {
-                if (self.readyState == CLOSED) return;
-                self.onClose("ping timeout");
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (self.readyState == CLOSED) return;
+                        self.onClose("ping timeout");
+                    }
+                });
             }
         }, timeout, TimeUnit.MILLISECONDS);
     }
 
-    private synchronized void ping() {
+    private void ping() {
         if (this.pingIntervalTimer != null) {
             pingIntervalTimer.cancel(true);
         }
@@ -437,9 +447,14 @@ public abstract class Socket extends Emitter {
         this.pingIntervalTimer = this.heartbeatScheduler.schedule(new Runnable() {
             @Override
             public void run() {
-                logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
-                self.sendPacket(Packet.PING);
-                self.onHeartbeat(self.pingTimeout);
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
+                        self.sendPacket(Packet.PING);
+                        self.onHeartbeat(self.pingTimeout);
+                    }
+                });
             }
         }, this.pingInterval, TimeUnit.MILLISECONDS);
     }
@@ -502,8 +517,13 @@ public abstract class Socket extends Emitter {
      * @param msg
      * @param fn callback to be called on drain
      */
-    public void send(String msg, Runnable fn) {
-        this.sendPacket(Packet.MESSAGE, msg, fn);
+    public void send(final String msg, final Runnable fn) {
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                Socket.this.sendPacket(Packet.MESSAGE, msg, fn);
+            }
+        });
     }
 
     private void sendPacket(String type) {
@@ -529,13 +549,18 @@ public abstract class Socket extends Emitter {
      * @return a reference to to this object.
      */
     public Socket close() {
-        if (this.readyState == OPENING || this.readyState == OPEN) {
-            this.onClose("forced close");
-            logger.fine("socket closing - telling transport to close");
-            this.transport.close();
-            this.transport.off();
-        }
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                if (Socket.this.readyState == OPENING || Socket.this.readyState == OPEN) {
+                    Socket.this.onClose("forced close");
+                    logger.fine("socket closing - telling transport to close");
+                    Socket.this.transport.close();
+                    Socket.this.transport.off();
+                }
 
+            }
+        });
         return this;
     }
 
@@ -558,18 +583,16 @@ public abstract class Socket extends Emitter {
             if (this.pingTimeoutTimer != null) {
                 this.pingTimeoutTimer.cancel(true);
             }
+            EventThread.nextTick(new Runnable() {
+                @Override
+                public void run() {
+                    Socket.this.writeBuffer.clear();
+                    Socket.this.callbackBuffer.clear();
+                }
+            });
             this.readyState = CLOSED;
             this.emit(EVENT_CLOSE, reason, desc);
             this.onclose();
-            // TODO:
-            // clean buffer in next tick, so developers can still
-            // grab the buffers on `close` event
-            // setTimeout(function() {}
-            //   self.writeBuffer = [];
-            //   self.callbackBuffer = [];
-            // );
-            this.writeBuffer.clear();
-            this.callbackBuffer.clear();
             this.id = null;
         }
     }

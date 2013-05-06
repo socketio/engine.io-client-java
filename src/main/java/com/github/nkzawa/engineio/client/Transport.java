@@ -58,27 +58,42 @@ public abstract class Transport extends Emitter {
     }
 
     public Transport open() {
-        if (this.readyState == CLOSED || this.readyState < 0) {
-            this.readyState = OPENING;
-            this.doOpen();
-        }
+        exec(new Runnable() {
+            @Override
+            public void run() {
+                if (Transport.this.readyState == CLOSED || Transport.this.readyState < 0) {
+                    Transport.this.readyState = OPENING;
+                    Transport.this.doOpen();
+                }
+            }
+        });
         return this;
     }
 
     public Transport close() {
-        if (this.readyState == OPENING || this.readyState == OPEN) {
-            this.doClose();
-            this.onClose();
-        }
+        exec(new Runnable() {
+            @Override
+            public void run() {
+                if (Transport.this.readyState == OPENING || Transport.this.readyState == OPEN) {
+                    Transport.this.doClose();
+                    Transport.this.onClose();
+                }
+            }
+        });
         return this;
     }
 
-    public void send(Packet[] packets) {
-        if (this.readyState == OPEN) {
-            this.write(packets);
-        } else {
-            throw new RuntimeException("Transport not open");
-        }
+    public void send(final Packet[] packets) {
+        exec(new Runnable() {
+            @Override
+            public void run() {
+                if (Transport.this.readyState == OPEN) {
+                    Transport.this.write(packets);
+                } else {
+                    throw new RuntimeException("Transport not open");
+                }
+            }
+        });
     }
 
     protected void onOpen() {
@@ -105,6 +120,14 @@ public abstract class Transport extends Emitter {
     abstract protected void doOpen();
 
     abstract protected void doClose();
+
+    protected static void exec(Runnable task) {
+        EventThread.exec(task);
+    }
+
+    protected static void nextTick(Runnable task) {
+        EventThread.nextTick(task);
+    }
 
 
     public static class Options {

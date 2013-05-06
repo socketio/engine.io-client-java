@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentMap;
 
 
 /**
- * The event emitter which is ported from the JavaScript module.
+ * The event emitter which is ported from the JavaScript module. This class is thread-safe.
  *
  * @see <a href="https://github.com/component/emitter">https://github.com/component/emitter</a>
  */

@@ -42,14 +42,24 @@ public class PollingXHR extends Polling {
         req.on(Request.EVENT_SUCCESS, new Listener() {
             @Override
             public void call(Object... args) {
-                fn.run();
+                exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        fn.run();
+                    }
+                });
             }
         });
         req.on(Request.EVENT_ERROR, new Listener() {
             @Override
-            public void call(Object... args) {
-                Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
-                self.onError("xhr post error", err);
+            public void call(final Object... args) {
+                exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
+                        self.onError("xhr post error", err);
+                    }
+                });
             }
         });
         req.create();
@@ -62,16 +72,26 @@ public class PollingXHR extends Polling {
         final PollingXHR self = this;
         req.on(Request.EVENT_DATA, new Listener() {
             @Override
-            public void call(Object... args) {
-                String data = args.length > 0 ? (String)args[0] : null;
-                self.onData(data);
+            public void call(final Object... args) {
+                exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        String data = args.length > 0 ? (String) args[0] : null;
+                        self.onData(data);
+                    }
+                });
             }
         });
         req.on(Request.EVENT_ERROR, new Listener() {
             @Override
-            public void call(Object... args) {
-                Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception)args[0] : null;
-                self.onError("xhr poll error", err);
+            public void call(final Object... args) {
+                exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        Exception err = args.length > 0 && args[0] instanceof Exception ? (Exception) args[0] : null;
+                        self.onError("xhr poll error", err);
+                    }
+                });
             }
         });
         req.create();

@@ -33,53 +33,57 @@ abstract public class Polling extends Transport {
     }
 
     public void pause(final Runnable onPause) {
-        int pending = 0;
-        final Polling self = this;
-
-        this.readyState = PAUSED;
-
-        final Runnable pause = new Runnable() {
+        exec(new Runnable() {
             @Override
             public void run() {
-                logger.fine("paused");
-                self.readyState = PAUSED;
-                onPause.run();
-            }
-        };
+                final Polling self = Polling.this;
 
-        if (this.polling || !this.writable) {
-            final int[] total = new int[] {0};
+                Polling.this.readyState = PAUSED;
 
-            if (this.polling) {
-                logger.fine("we are currently polling - waiting to pause");
-                total[0]++;
-                this.once(EVENT_POLL_COMPLETE, new Listener() {
+                final Runnable pause = new Runnable() {
                     @Override
-                    public void call(Object... args) {
-                        logger.fine("pre-pause polling complete");
-                        if (--total[0] == 0) {
-                            pause.run();
-                        }
+                    public void run() {
+                        logger.fine("paused");
+                        self.readyState = PAUSED;
+                        onPause.run();
                     }
-                });
-            }
+                };
 
-            if (!this.writable) {
-                logger.fine("we are currently writing - waiting to pause");
-                total[0]++;
-                this.once(EVENT_DRAIN, new Listener() {
-                    @Override
-                    public void call(Object... args) {
-                        logger.fine("pre-pause writing complete");
-                        if (--total[0] == 0) {
-                            pause.run();
-                        }
+                if (Polling.this.polling || !Polling.this.writable) {
+                    final int[] total = new int[] {0};
+
+                    if (Polling.this.polling) {
+                        logger.fine("we are currently polling - waiting to pause");
+                        total[0]++;
+                        Polling.this.once(EVENT_POLL_COMPLETE, new Listener() {
+                            @Override
+                            public void call(Object... args) {
+                                logger.fine("pre-pause polling complete");
+                                if (--total[0] == 0) {
+                                    pause.run();
+                                }
+                            }
+                        });
                     }
-                });
+
+                    if (!Polling.this.writable) {
+                        logger.fine("we are currently writing - waiting to pause");
+                        total[0]++;
+                        Polling.this.once(EVENT_DRAIN, new Listener() {
+                            @Override
+                            public void call(Object... args) {
+                                logger.fine("pre-pause writing complete");
+                                if (--total[0] == 0) {
+                                    pause.run();
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    pause.run();
+                }
             }
-        } else {
-            pause.run();
-        }
+        });
     }
 
     private void poll() {

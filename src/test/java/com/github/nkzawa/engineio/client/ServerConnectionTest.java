@@ -80,8 +80,8 @@ public class ServerConnectionTest {
     public void stopServer() throws InterruptedException {
         System.out.println("Stopping server ...");
         serverProcess.destroy();
-        serverOutout.cancel(false);
-        serverError.cancel(false);
+        serverOutout.cancel(true);
+        serverError.cancel(true);
         serverService.shutdown();
         serverService.awaitTermination(3000, TimeUnit.MILLISECONDS);
     }

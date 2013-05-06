@@ -44,19 +44,39 @@ public class WebSocket extends Transport {
             this.socket = new WebSocketClient(new URI(this.uri()), new Draft_17()) {
                 @Override
                 public void onOpen(ServerHandshake serverHandshake) {
-                    self.onOpen();
+                    exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onOpen();
+                        }
+                    });
                 }
                 @Override
                 public void onClose(int i, String s, boolean b) {
-                    self.onClose();
+                    exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onClose();
+                        }
+                    });
                 }
                 @Override
-                public void onMessage(String s) {
-                    self.onData(s);
+                public void onMessage(final String s) {
+                    exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onData(s);
+                        }
+                    });
                 }
                 @Override
-                public void onError(Exception e) {
-                    self.onError("websocket error", e);
+                public void onError(final Exception e) {
+                    exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onError("websocket error", e);
+                        }
+                    });
                 }
             };
             this.socket.connect();
@@ -84,14 +104,19 @@ public class WebSocket extends Transport {
             this.bufferedAmountId = this.drainScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
-                    if (!self.socket.getConnection().hasBufferedData()) {
-                        self.bufferedAmountId.cancel(true);
-                        ondrain.run();
-                    }
+                    exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!self.socket.getConnection().hasBufferedData()) {
+                                self.bufferedAmountId.cancel(true);
+                                ondrain.run();
+                            }
+                        }
+                    });
                 }
             }, 50, 50, TimeUnit.MILLISECONDS);
         } else {
-            this.drainScheduler.schedule(ondrain, 0, TimeUnit.MILLISECONDS);
+            nextTick(ondrain);
         }
     }
 
