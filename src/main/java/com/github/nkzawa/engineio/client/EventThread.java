@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadFactory;
 
 
 /**
- * The main thread for event loop.
+ * The thread for event loop. All non-background tasks run within this thread.
  */
 public class EventThread extends Thread {
 

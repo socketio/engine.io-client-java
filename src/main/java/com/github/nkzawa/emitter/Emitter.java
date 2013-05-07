@@ -25,7 +25,7 @@ public class Emitter {
      * Listens on the event.
      * @param event event name.
      * @param fn
-     * @return a reference to to this object.
+     * @return a reference to this object.
      */
     public Emitter on(String event, Listener fn) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
@@ -43,9 +43,9 @@ public class Emitter {
     /**
      * Adds a one time listener for the event.
      *
-     * @param event
+     * @param event an event name.
      * @param fn
-     * @return a reference to to this object.
+     * @return a reference to this object.
      */
     public Emitter once(final String event, final Listener fn) {
         Listener on = new Listener() {
@@ -64,7 +64,7 @@ public class Emitter {
     /**
      * Removes all registered listeners.
      *
-     * @return a reference to to this object.
+     * @return a reference to this object.
      */
     public Emitter off() {
         this.callbacks.clear();
@@ -75,8 +75,8 @@ public class Emitter {
     /**
      * Removes all listeners of the specified event.
      *
-     * @param event
-     * @return a reference to to this object.
+     * @param event an event name.
+     * @return a reference to this object.
      */
     public Emitter off(String event) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.remove(event);
@@ -91,9 +91,9 @@ public class Emitter {
     /**
      * Removes the listener.
      *
-     * @param event
+     * @param event an event name.
      * @param fn
-     * @return a reference to to this object.
+     * @return a reference to this object.
      */
     public Emitter off(String event, Listener fn) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
@@ -107,9 +107,9 @@ public class Emitter {
     /**
      * Executes each of listeners with the given args.
      *
-     * @param event
+     * @param event an event name.
      * @param args
-     * @return a reference to to this object.
+     * @return a reference to this object.
      */
     public Emitter emit(String event, Object... args) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
@@ -125,8 +125,8 @@ public class Emitter {
     /**
      * Returns a list of listeners for the specified event.
      *
-     * @param event
-     * @return a reference to to this object.
+     * @param event an event name.
+     * @return a reference to this object.
      */
     public List<Listener> listeners(String event) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
@@ -137,8 +137,8 @@ public class Emitter {
     /**
      * Check if this emitter has listeners for the specified event.
      *
-     * @param event
-     * @return a reference to to this object.
+     * @param event an event name.
+     * @return a reference to this object.
      */
     public boolean hasListeners(String event) {
         return !this.listeners(event).isEmpty();
