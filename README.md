@@ -40,7 +40,7 @@ How to set options:
 
 ```java
 opts = new Socket.Options();
-opts.cookie = "foo=1;"
+opts.cookie = "foo=1;";
 
 socket = new Socket("ws://localhost", opts) { ... };
 ```
