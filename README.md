@@ -1,12 +1,12 @@
 # Engine.IO-client.java
 [![Build Status](https://travis-ci.org/nkzawa/engine.io-client.java.png?branch=master)](https://travis-ci.org/nkzawa/engine.io-client.java)
 
-This is the Engine.IO Client Library for Java, which is simply ported from the [client](https://github.com/LearnBoost/engine.io-client) for JavaScript.
+This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/LearnBoost/engine.io-client).
 
-See also: https://github.com/nkzawa/socket.io-client.java
+See also: [Socket.IO-client.java](https://github.com/nkzawa/socket.io-client.java)
 
 ## Usage
-Engine.IO-client.java has the similar api with the js client. You can use `Socket` to connect:
+Engine.IO-client.java has the similar api with the JS client. You can use `Socket` to connect:
 
 ```java
 socket = new Socket("ws://localhost") {
