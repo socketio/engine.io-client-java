@@ -121,6 +121,11 @@ public abstract class Transport extends Emitter {
 
     public static class Options {
 
+        /**
+         * Cookie value for handshake.
+         */
+        public String cookie;
+
         public String hostname;
         public String path;
         public String timestampParam;

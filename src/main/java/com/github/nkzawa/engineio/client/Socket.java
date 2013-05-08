@@ -102,6 +102,7 @@ public abstract class Socket extends Emitter {
     private String hostname;
     private String path;
     private String timestampParam;
+    private String cookie;
     private List<String> transports;
     private List<String> upgrades;
     private Map<String, String> query;
@@ -165,6 +166,7 @@ public abstract class Socket extends Emitter {
         this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
+        this.cookie = opts.cookie;
 
         Socket.sockets.add(this);
         Socket.sockets.evs.emit(Sockets.EVENT_ADD, this);
@@ -204,6 +206,7 @@ public abstract class Socket extends Emitter {
         opts.timestampRequests = this.timestampRequests;
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
+        opts.cookie = this.cookie;
 
         if (WebSocket.NAME.equals(name)) {
             return new WebSocket(opts);

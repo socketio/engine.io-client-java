@@ -217,4 +217,31 @@ public class ServerConnectionTest {
 
         socket.close();
     }
+
+    @Test(timeout = TIMEOUT)
+    public void cookie() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
+
+        Socket.Options opts = new Socket.Options();
+        opts.cookie = "foo=1;";
+
+        socket = new Socket("ws://localhost:" + PORT, opts) {
+            @Override
+            public void onopen() {}
+
+            @Override
+            public void onmessage(String data) {
+                System.out.println("onmessage: " + data);
+                messages.offer(data);
+            }
+
+            @Override
+            public void onclose() {}
+        };
+        socket.open();
+
+        assertThat(messages.take(), is("hello client"));
+        assertThat(messages.take(), is(opts.cookie));
+        socket.close();
+    }
 }

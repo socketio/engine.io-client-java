@@ -7,6 +7,11 @@ var engine = require('engine.io')
 server.on('connection', function(socket) {
   socket.send('hello client');
 
+  if (socket.request.headers.cookie) {
+      console.log('cookie:', socket.request.headers.cookie);
+      socket.send(socket.request.headers.cookie);
+  }
+
   socket.on('packet', function(packet) {
     console.log('packet:', packet);
   });

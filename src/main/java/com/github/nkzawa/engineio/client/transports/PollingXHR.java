@@ -17,9 +17,11 @@ public class PollingXHR extends Polling {
 
     private Request sendXhr;
     private Request pollXhr;
+    private String cookie;
 
     public PollingXHR(Options opts) {
         super(opts);
+        this.cookie = opts.cookie;
     }
 
     protected Request request() {
@@ -31,6 +33,7 @@ public class PollingXHR extends Polling {
             opts = new Request.Options();
         }
         opts.uri = this.uri();
+        opts.cookie = this.cookie;
         return new Request(opts);
     }
 
@@ -110,12 +113,14 @@ public class PollingXHR extends Polling {
         String method;
         String uri;
         String data;
+        String cookie;
         HttpURLConnection xhr;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
+            this.cookie = opts.cookie;
         }
 
         public void create() {
@@ -132,6 +137,10 @@ public class PollingXHR extends Polling {
             if ("POST".equals(this.method)) {
                 xhr.setDoOutput(true);
                 xhr.setRequestProperty("Content-type", "text/plain;charset=UTF-8");
+            }
+
+            if (this.cookie != null) {
+                xhr.setRequestProperty("Cookie", this.cookie);
             }
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
@@ -201,6 +210,7 @@ public class PollingXHR extends Polling {
             public String uri;
             public String method;
             public String data;
+            public String cookie;
         }
     }
 }

@@ -36,6 +36,15 @@ socket.on(Socket.EVENT_ERROR, new Emitter.Listener() {
 });
 ```
 
+How to set options:
+
+```java
+opts = new Socket.Options();
+opts.cookie = "foo=1;"
+
+socket = new Socket("ws://localhost", opts) { ... };
+```
+
 See the Javadoc for more details.
 
 http://nkzawa.github.io/engine.io-client.java/apidocs/
