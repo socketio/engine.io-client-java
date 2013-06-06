@@ -1,11 +1,13 @@
 package com.github.nkzawa.engineio.client;
 
+import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,4 +37,32 @@ public class SocketTest {
         assertThat(socket.filterUpgrades(upgrades), is(expected));
     }
 
+    /**
+     * should not emit close on incorrect connection.
+     *
+     * @throws URISyntaxException
+     */
+    @Test
+    public void socketClosing() throws URISyntaxException, InterruptedException {
+        Socket socket = new Socket("ws://localhost:8080") {
+            @Override
+            public void onopen() {}
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+        };
+        final boolean[] closed = {false};
+
+        socket.on(Socket.EVENT_CLOSE, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                closed[0] = true;
+            }
+        });
+        socket.open();
+
+        Thread.sleep(200);
+        assertThat(closed[0], is(false));
+    }
 }

@@ -378,7 +378,7 @@ public abstract class Socket extends Emitter {
             if (Packet.OPEN.equals(packet.type)) {
                 this.onHandshake(gson.fromJson(packet.data, HandshakeData.class));
             } else if (Packet.PONG.equals(packet.type)) {
-                this.ping();
+                this.setPing();
             } else if (Packet.ERROR.equals(packet.type)) {
                 // TODO: handle error
                 EngineIOException err = new EngineIOException("server error");
@@ -402,7 +402,7 @@ public abstract class Socket extends Emitter {
         this.pingInterval = data.pingInterval;
         this.pingTimeout = data.pingTimeout;
         this.onOpen();
-        this.ping();
+        this.setPing();
 
         this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
         this.on(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
@@ -439,7 +439,7 @@ public abstract class Socket extends Emitter {
         }, timeout, TimeUnit.MILLISECONDS);
     }
 
-    private void ping() {
+    private void setPing() {
         if (this.pingIntervalTimer != null) {
             pingIntervalTimer.cancel(true);
         }
@@ -452,12 +452,24 @@ public abstract class Socket extends Emitter {
                     @Override
                     public void run() {
                         logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
-                        self.sendPacket(Packet.PING);
+                        self.ping();
                         self.onHeartbeat(self.pingTimeout);
                     }
                 });
             }
         }, this.pingInterval, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Sends a ping packet
+     */
+    public void ping() {
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                Socket.this.sendPacket(Packet.PING);
+            }
+        });
     }
 
     private void onDrain() {
@@ -578,6 +590,7 @@ public abstract class Socket extends Emitter {
     private void onClose(String reason, Exception desc) {
         if (this.readyState == ReadyState.OPENING || this.readyState == ReadyState.OPEN) {
             logger.fine(String.format("socket close with reason: %s", reason));
+            final Socket self = this;
             if (this.pingIntervalTimer != null) {
                 this.pingIntervalTimer.cancel(true);
             }
@@ -587,12 +600,15 @@ public abstract class Socket extends Emitter {
             EventThread.nextTick(new Runnable() {
                 @Override
                 public void run() {
-                    Socket.this.writeBuffer.clear();
-                    Socket.this.callbackBuffer.clear();
+                    self.writeBuffer.clear();
+                    self.callbackBuffer.clear();
                 }
             });
+            ReadyState prev = this.readyState;
             this.readyState = ReadyState.CLOSED;
-            this.emit(EVENT_CLOSE, reason, desc);
+            if (prev == ReadyState.OPEN) {
+                this.emit(EVENT_CLOSE, reason, desc);
+            }
             this.onclose();
             this.id = null;
         }
