@@ -106,8 +106,8 @@ public abstract class Socket extends Emitter {
     private List<String> transports;
     private List<String> upgrades;
     private Map<String, String> query;
-    private Queue<Packet> writeBuffer = new LinkedList<Packet>();
-    private Queue<Runnable> callbackBuffer = new LinkedList<Runnable>();
+    private LinkedList<Packet> writeBuffer = new LinkedList<Packet>();
+    private LinkedList<Runnable> callbackBuffer = new LinkedList<Runnable>();
     private Transport transport;
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
@@ -461,7 +461,7 @@ public abstract class Socket extends Emitter {
     }
 
     /**
-     * Sends a ping packet
+     * Sends a ping packet.
      */
     public void ping() {
         EventThread.exec(new Runnable() {
@@ -473,7 +473,13 @@ public abstract class Socket extends Emitter {
     }
 
     private void onDrain() {
-        this.callbacks();
+        for (int i = 0; i < this.prevBufferLen; i++) {
+            Runnable callback = this.callbackBuffer.get(i);
+            if (callback != null) {
+                callback.run();
+            }
+        }
+
         for (int i = 0; i < this.prevBufferLen; i++) {
             this.writeBuffer.poll();
             this.callbackBuffer.poll();
@@ -484,16 +490,6 @@ public abstract class Socket extends Emitter {
             this.emit(EVENT_DRAIN);
         } else {
             this.flush();
-        }
-    }
-
-    private void callbacks() {
-        Iterator<Runnable> iter = this.callbackBuffer.iterator();
-        for (int i = 0; i < this.prevBufferLen && iter.hasNext(); i++) {
-            Runnable callback = iter.next();
-            if (callback != null) {
-                callback.run();
-            }
         }
     }
 
@@ -569,7 +565,6 @@ public abstract class Socket extends Emitter {
                     Socket.this.onClose("forced close");
                     logger.fine("socket closing - telling transport to close");
                     Socket.this.transport.close();
-                    Socket.this.transport.off();
                 }
 
             }
@@ -580,6 +575,7 @@ public abstract class Socket extends Emitter {
     private void onError(Exception err) {
         logger.fine(String.format("socket error %s", err));
         this.emit(EVENT_ERROR, err);
+        this.onerror(err);
         this.onClose("transport error", err);
     }
 
@@ -591,12 +587,15 @@ public abstract class Socket extends Emitter {
         if (this.readyState == ReadyState.OPENING || this.readyState == ReadyState.OPEN) {
             logger.fine(String.format("socket close with reason: %s", reason));
             final Socket self = this;
+
+            // clear timers
             if (this.pingIntervalTimer != null) {
                 this.pingIntervalTimer.cancel(true);
             }
             if (this.pingTimeoutTimer != null) {
                 this.pingTimeoutTimer.cancel(true);
             }
+
             EventThread.nextTick(new Runnable() {
                 @Override
                 public void run() {
@@ -604,13 +603,22 @@ public abstract class Socket extends Emitter {
                     self.callbackBuffer.clear();
                 }
             });
+
+            // ignore further transport communication
+            this.transport.off();
+
+            // set ready state
             ReadyState prev = this.readyState;
             this.readyState = ReadyState.CLOSED;
+
+            // clear session id
+            this.id = null;
+
+            // emit events
             if (prev == ReadyState.OPEN) {
                 this.emit(EVENT_CLOSE, reason, desc);
+                this.onclose();
             }
-            this.onclose();
-            this.id = null;
         }
     }
 
@@ -630,6 +638,7 @@ public abstract class Socket extends Emitter {
 
     public abstract void onclose();
 
+    public abstract void onerror(Exception err);
 
     public static class Options extends Transport.Options {
 

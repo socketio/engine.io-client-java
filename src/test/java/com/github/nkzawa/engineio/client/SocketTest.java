@@ -28,6 +28,8 @@ public class SocketTest {
             public void onmessage(String data) {}
             @Override
             public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
         };
         List<String> upgrades = new ArrayList<String>() {{
             add(Polling.NAME);
@@ -51,6 +53,8 @@ public class SocketTest {
             public void onmessage(String data) {}
             @Override
             public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
         };
         final boolean[] closed = {false};
 

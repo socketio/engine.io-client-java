@@ -105,6 +105,9 @@ public class ServerConnectionTest {
                 System.out.println("onclose:");
                 events.offer("onclose");
             }
+
+            @Override
+            public void onerror(Exception err) {}
         };
         socket.open();
 
@@ -132,6 +135,9 @@ public class ServerConnectionTest {
 
             @Override
             public void onclose() {}
+
+            @Override
+            public void onerror(Exception err) {}
         };
         socket.open();
 
@@ -151,6 +157,8 @@ public class ServerConnectionTest {
             public void onmessage(String data) {}
             @Override
             public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
         };
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
@@ -186,6 +194,8 @@ public class ServerConnectionTest {
             public void onmessage(String data) {}
             @Override
             public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
         };
         socket.on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
             @Override
@@ -237,6 +247,9 @@ public class ServerConnectionTest {
 
             @Override
             public void onclose() {}
+
+            @Override
+            public void onerror(Exception err) {}
         };
         socket.open();
 

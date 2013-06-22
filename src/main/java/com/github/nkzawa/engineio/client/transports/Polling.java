@@ -128,8 +128,25 @@ abstract public class Polling extends Transport {
     }
 
     protected void doClose() {
-        logger.fine("sending close packet");
-        this.send(new Packet[] {new Packet(Packet.CLOSE, null)});
+        final Polling self = this;
+
+        Listener close = new Listener() {
+            @Override
+            public void call(Object... args) {
+                logger.fine("writing close packet");
+                self.write(new Packet[] {new Packet(Packet.CLOSE, null)});
+            }
+        };
+
+        if (this.readyState == ReadyState.OPEN) {
+            logger.fine("transport open - closing");
+            close.call();
+        } else {
+            // in case we're trying to close while
+            // handshaking is in progress (engine.io-client GH-164)
+            logger.fine("transport not open - deferring close");
+            this.once(EVENT_OPEN, close);
+        }
     }
 
     protected void write(Packet[] packets) {

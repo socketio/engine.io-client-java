@@ -34,6 +34,9 @@ socket = new Socket("ws://localhost") {
 
   @Override
   public void onclose() {}
+
+  @Override
+  public void onerror(Exception err) {}
 };
 socket.open();
 ```
