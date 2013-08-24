@@ -43,6 +43,7 @@ public class SocketTest {
      * should not emit close on incorrect connection.
      *
      * @throws URISyntaxException
+     * @throws InterruptedException
      */
     @Test
     public void socketClosing() throws URISyntaxException, InterruptedException {
