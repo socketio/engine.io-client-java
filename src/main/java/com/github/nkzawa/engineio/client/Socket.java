@@ -601,6 +601,7 @@ public abstract class Socket extends Emitter {
                 public void run() {
                     self.writeBuffer.clear();
                     self.callbackBuffer.clear();
+                    self.prevBufferLen = 0;
                 }
             });
 

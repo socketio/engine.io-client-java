@@ -135,7 +135,7 @@ public class WebSocket extends Transport {
         }
     }
 
-    private String uri() {
+    protected String uri() {
         Map<String, String> query = this.query;
         if (query == null) {
             query = new HashMap<String, String>();
