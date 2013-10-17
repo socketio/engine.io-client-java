@@ -15,19 +15,12 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class WebSocket extends Transport {
 
     public static final String NAME = "websocket";
 
     private WebSocketClient socket;
-    private Future bufferedAmountId;
-
-    private ScheduledExecutorService drainScheduler = Executors.newSingleThreadScheduledExecutor();
 
 
     public WebSocket(Options opts) {
@@ -101,31 +94,13 @@ public class WebSocket extends Transport {
             }
         };
 
-        if (this.socket.getConnection().hasBufferedData()) {
-            this.bufferedAmountId = this.drainScheduler.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!self.socket.getConnection().hasBufferedData()) {
-                                self.bufferedAmountId.cancel(true);
-                                ondrain.run();
-                            }
-                        }
-                    });
-                }
-            }, 50, 50, TimeUnit.MILLISECONDS);
-        } else {
-            EventThread.nextTick(ondrain);
-        }
+        // fake drain
+        // defer to next tick to allow Socket to clear writeBuffer
+        EventThread.nextTick(ondrain);
     }
 
     @Override
     protected void onClose() {
-        if (this.bufferedAmountId != null) {
-            this.bufferedAmountId.cancel(true);
-        }
         super.onClose();
     }
 
