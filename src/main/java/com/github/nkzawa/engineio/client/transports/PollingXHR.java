@@ -126,6 +126,7 @@ public class PollingXHR extends Polling {
         public void create() {
             final Request self = this;
             try {
+                logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
                 URL url = new URL(this.uri);
                 xhr = (HttpURLConnection)url.openConnection();
                 xhr.setRequestMethod(this.method);
@@ -158,13 +159,23 @@ public class PollingXHR extends Polling {
                             writer.flush();
                         }
 
-                        String line;
-                        StringBuilder data = new StringBuilder();
-                        reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                        while ((line = reader.readLine()) != null) {
-                            data.append(line);
+                        StringBuilder data = null;
+
+                        final int statusCode = xhr.getResponseCode();
+                        if (HttpURLConnection.HTTP_OK == statusCode) {
+                            String line;
+                            data = new StringBuilder();
+                            reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
+                            while ((line = reader.readLine()) != null) {
+                                data.append(line);
+                            }
+                        } else {
+                            self.onError(new IOException(Integer.toString(statusCode)));
                         }
-                        self.onData(data.toString());
+
+                        if (data != null) {
+                            self.onData(data.toString());
+                        }
                     } catch (IOException e) {
                         self.onError(e);
                     } finally {

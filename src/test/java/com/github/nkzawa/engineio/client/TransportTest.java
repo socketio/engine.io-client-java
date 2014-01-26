@@ -23,6 +23,7 @@ public class TransportTest {
         opt.query = new HashMap<String, String>() {{
             put("sid", "test");
         }};
+        opt.timestampRequests = false;
         Polling polling = new Polling(opt);
         assertThat(polling.uri(), is("http://localhost/engine.io?sid=test"));
     }
@@ -37,6 +38,7 @@ public class TransportTest {
             put("sid", "test");
         }};
         opt.port = 80;
+        opt.timestampRequests = false;
         Polling polling = new Polling(opt);
         assertThat(polling.uri(), is("http://localhost/engine.io?sid=test"));
     }
@@ -51,6 +53,7 @@ public class TransportTest {
             put("sid", "test");
         }};
         opt.port = 3000;
+        opt.timestampRequests = false;
         Polling polling = new Polling(opt);
         assertThat(polling.uri(), is("http://localhost:3000/engine.io?sid=test"));
     }
@@ -65,6 +68,7 @@ public class TransportTest {
             put("sid", "test");
         }};
         opt.port = 443;
+        opt.timestampRequests = false;
         Polling polling = new Polling(opt);
         assertThat(polling.uri(), is("https://localhost/engine.io?sid=test"));
     }
@@ -89,6 +93,7 @@ public class TransportTest {
         opt.query = new HashMap<String, String>() {{
             put("transport", "websocket");
         }};
+        opt.timestampRequests = false;
         WS ws = new WS(opt);
         assertThat(ws.uri(), is("ws://test/engine.io?transport=websocket"));
     }
@@ -99,6 +104,7 @@ public class TransportTest {
         opt.path ="/engine.io";
         opt.hostname = "test";
         opt.secure = true;
+        opt.timestampRequests = false;
         WS ws = new WS(opt);
         assertThat(ws.uri(), is("wss://test/engine.io"));
     }

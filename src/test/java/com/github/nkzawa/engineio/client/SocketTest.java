@@ -10,6 +10,8 @@ import org.junit.runners.JUnit4;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -47,7 +49,7 @@ public class SocketTest {
      */
     @Test
     public void socketClosing() throws URISyntaxException, InterruptedException {
-        Socket socket = new Socket("ws://localhost:8080") {
+        Socket socket = new Socket("ws://0.0.0.0:8080") {
             @Override
             public void onopen() {}
             @Override
@@ -59,6 +61,19 @@ public class SocketTest {
         };
         final boolean[] closed = {false};
 
+        socket.once(Socket.EVENT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        assertThat(closed[0], is(false));
+                    }
+                }, 20);
+            }
+        });
+
         socket.on(Socket.EVENT_CLOSE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -66,8 +81,5 @@ public class SocketTest {
             }
         });
         socket.open();
-
-        Thread.sleep(200);
-        assertThat(closed[0], is(false));
     }
 }

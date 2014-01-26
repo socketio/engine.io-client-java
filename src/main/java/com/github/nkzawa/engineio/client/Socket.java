@@ -56,6 +56,8 @@ public abstract class Socket extends Emitter {
      */
     public static final String EVENT_ERROR = "error";
 
+    public static final String EVENT_UPGRADE_ERROR = "upgradeError";
+
     /**
      * Called on completing a buffer flush.
      */
@@ -78,11 +80,6 @@ public abstract class Socket extends Emitter {
         @Override
         public void run() {}
     };
-
-    /**
-     * List of Socket instances.
-     */
-    public static final Sockets sockets = new Sockets();
 
     /**
      * The protocol version.
@@ -167,9 +164,6 @@ public abstract class Socket extends Emitter {
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.cookie = opts.cookie;
-
-        Socket.sockets.add(this);
-        Socket.sockets.evs.emit(Sockets.EVENT_ADD, this);
     }
 
     /**
@@ -179,8 +173,9 @@ public abstract class Socket extends Emitter {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
+                String transportName = Socket.this.transports.get(0);
                 Socket.this.readyState = ReadyState.OPENING;
-                Transport transport = Socket.this.createTransport(Socket.this.transports.get(0));
+                Transport transport = Socket.this.createTransport(transportName);
                 Socket.this.setTransport(transport);
                 transport.open();
             }
@@ -218,10 +213,11 @@ public abstract class Socket extends Emitter {
     }
 
     private void setTransport(Transport transport) {
+        logger.fine(String.format("setting transport %s", transport.name));
         final Socket self = this;
 
         if (this.transport != null) {
-            logger.fine("clearing existing transport");
+            logger.fine(String.format("clearing existing transport %s", this.transport.name));
             this.transport.off();
         }
 
@@ -271,7 +267,7 @@ public abstract class Socket extends Emitter {
                 transport[0].close();
                 transport[0] = null;
                 logger.fine(String.format("probing transport '%s' failed because of error: %s", name, err));
-                self.emit(EVENT_ERROR, error);
+                self.emit(EVENT_UPGRADE_ERROR, error);
             }
         };
 
@@ -317,7 +313,7 @@ public abstract class Socket extends Emitter {
                             logger.fine(String.format("probe transport '%s' failed", name));
                             EngineIOException err = new EngineIOException("probe error");
                             //err.transport = transport[0].name;
-                            self.emit(EVENT_ERROR, err);
+                            self.emit(EVENT_UPGRADE_ERROR, err);
                         }
                     }
                 });
@@ -673,12 +669,5 @@ public abstract class Socket extends Emitter {
 
             return opts;
         }
-    }
-
-    public static class Sockets extends ArrayList<Socket> {
-
-        public static final String EVENT_ADD = "add";
-
-        public Emitter evs = new Emitter();
     }
 }
