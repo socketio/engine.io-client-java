@@ -7,6 +7,8 @@ import com.github.nkzawa.engineio.client.EventThread;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -17,11 +19,9 @@ public class PollingXHR extends Polling {
 
     private Request sendXhr;
     private Request pollXhr;
-    private String cookie;
 
     public PollingXHR(Options opts) {
         super(opts);
-        this.cookie = opts.cookie;
     }
 
     protected Request request() {
@@ -33,8 +33,34 @@ public class PollingXHR extends Polling {
             opts = new Request.Options();
         }
         opts.uri = this.uri();
-        opts.cookie = this.cookie;
-        return new Request(opts);
+
+        Request req = new Request(opts);
+
+        final PollingXHR self = this;
+        req.on(Request.EVENT_REQUEST_HEADERS, new Listener() {
+            @Override
+            public void call(Object... args) {
+                // Never execute asynchronously for support to modify headers.
+                @SuppressWarnings("unchecked")
+                Map<String, String> headers = args.length > 0 && args[0] instanceof Map ?
+                        (Map<String, String>)args[0] : new HashMap<String, String>();
+                self.emit(EVENT_REQUEST_HEADERS, headers);
+            }
+        }).on(Request.EVENT_RESPONSE_HEADERS, new Listener() {
+            @Override
+            public void call(final Object... args) {
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        @SuppressWarnings("unchecked")
+                        final Map<String, String> headers = args.length > 0 && args[0] instanceof Map ?
+                                (Map<String, String>)args[0] : new HashMap<String, String>();
+                        self.emit(EVENT_RESPONSE_HEADERS, headers);
+                    }
+                });
+            }
+        });
+        return req;
     }
 
     protected void doWrite(String data, final Runnable fn) {
@@ -107,20 +133,20 @@ public class PollingXHR extends Polling {
         public static final String EVENT_SUCCESS = "success";
         public static final String EVENT_DATA = "data";
         public static final String EVENT_ERROR = "error";
+        public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
+        public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
 
         private static final ExecutorService xhrService = Executors.newCachedThreadPool();
 
         String method;
         String uri;
         String data;
-        String cookie;
         HttpURLConnection xhr;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
-            this.cookie = opts.cookie;
         }
 
         public void create() {
@@ -135,13 +161,16 @@ public class PollingXHR extends Polling {
                 return;
             }
 
+            Map<String, String> headers = new HashMap<String, String>();
+
             if ("POST".equals(this.method)) {
                 xhr.setDoOutput(true);
-                xhr.setRequestProperty("Content-type", "text/plain;charset=UTF-8");
+                headers.put("Content-type", "text/plain;charset=UTF-8");
             }
 
-            if (this.cookie != null) {
-                xhr.setRequestProperty("Cookie", this.cookie);
+            self.onRequestHeaders(headers);
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                xhr.setRequestProperty(header.getKey(), header.getValue());
             }
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
@@ -158,6 +187,12 @@ public class PollingXHR extends Polling {
                             writer.write(self.data);
                             writer.flush();
                         }
+
+                        Map<String, String> headers = new HashMap<String, String>();
+                        for (String key : xhr.getHeaderFields().keySet()) {
+                            headers.put(key, xhr.getHeaderField(key));
+                        }
+                        self.onResponseHeaders(headers);
 
                         StringBuilder data = null;
 
@@ -205,6 +240,14 @@ public class PollingXHR extends Polling {
             this.cleanup();
         }
 
+        private void onRequestHeaders(Map<String, String> headers) {
+            this.emit(EVENT_REQUEST_HEADERS, headers);
+        }
+
+        private void onResponseHeaders(Map<String, String> headers) {
+            this.emit(EVENT_RESPONSE_HEADERS, headers);
+        }
+
         private void cleanup() {
             if (xhr != null) {
                 xhr.disconnect();
@@ -221,7 +264,6 @@ public class PollingXHR extends Polling {
             public String uri;
             public String method;
             public String data;
-            public String cookie;
         }
     }
 }

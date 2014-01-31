@@ -23,6 +23,8 @@ public abstract class Transport extends Emitter {
     public static final String EVENT_PACKET = "packet";
     public static final String EVENT_DRAIN = "drain";
     public static final String EVENT_ERROR = "error";
+    public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
+    public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
 
     public boolean writable;
     public String name;
@@ -120,11 +122,6 @@ public abstract class Transport extends Emitter {
 
 
     public static class Options {
-
-        /**
-         * Cookie value for handshake.
-         */
-        public String cookie;
 
         public String hostname;
         public String path;

@@ -1,6 +1,8 @@
 package com.github.nkzawa.engineio.client;
 
 import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.engineio.client.transports.Polling;
+import com.github.nkzawa.engineio.client.transports.PollingXHR;
 import com.github.nkzawa.engineio.parser.HandshakeData;
 import org.junit.After;
 import org.junit.Before;
@@ -12,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.concurrent.*;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -93,7 +96,6 @@ public class ServerConnectionTest {
         socket = new Socket("ws://localhost:" + PORT) {
             @Override
             public void onopen() {
-                System.out.println("onopen:");
                 events.offer("onopen");
             }
 
@@ -102,7 +104,6 @@ public class ServerConnectionTest {
 
             @Override
             public void onclose() {
-                System.out.println("onclose:");
                 events.offer("onclose");
             }
 
@@ -123,19 +124,16 @@ public class ServerConnectionTest {
         socket = new Socket("ws://localhost:" + PORT) {
             @Override
             public void onopen() {
-                System.out.println("onopen:");
                 socket.send("hi");
             }
 
             @Override
             public void onmessage(String data) {
-                System.out.println("onmessage: " + data);
                 events.offer(data);
             }
 
             @Override
             public void onclose() {}
-
             @Override
             public void onerror(Exception err) {}
         };
@@ -163,7 +161,6 @@ public class ServerConnectionTest {
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                System.out.println(String.format("on handshake: %s", args.length));
                 events.offer(args);
             }
         });
@@ -178,7 +175,7 @@ public class ServerConnectionTest {
         assertThat(data.upgrades, is(notNullValue()));
         assertThat(data.upgrades, is(not(empty())));
         assertThat(data.pingTimeout, is(greaterThan((long)0)));
-        assertThat(data.pingInterval, is(greaterThan((long)0)));
+        assertThat(data.pingInterval, is(greaterThan((long) 0)));
 
         socket.close();
     }
@@ -200,14 +197,12 @@ public class ServerConnectionTest {
         socket.on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                System.out.println(String.format("on upgrading: %s", args.length));
                 events.offer(args);
             }
         });
         socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                System.out.println(String.format("on upgrade: %s", args.length));
                 events.offer(args);
             }
         });
@@ -229,32 +224,49 @@ public class ServerConnectionTest {
     }
 
     @Test(timeout = TIMEOUT)
-    public void cookie() throws URISyntaxException, InterruptedException {
+    public void pollingHeaders() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
         Socket.Options opts = new Socket.Options();
-        opts.cookie = "foo=1;";
+        opts.transports = new String[] {Polling.NAME};
 
         socket = new Socket("ws://localhost:" + PORT, opts) {
             @Override
             public void onopen() {}
-
             @Override
-            public void onmessage(String data) {
-                System.out.println("onmessage: " + data);
-                messages.offer(data);
-            }
-
+            public void onmessage(String data) {}
             @Override
             public void onclose() {}
-
             @Override
             public void onerror(Exception err) {}
         };
+        socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Transport transport = (Transport)args[0];
+                if (!(transport instanceof PollingXHR)) return;
+
+                transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> headers = (Map<String, String>)args[0];
+                        headers.put("X-EngineIO", "foo");
+                    }
+                }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> headers = (Map<String, String>)args[0];
+                        messages.offer(headers.get("X-EngineIO"));
+                    }
+                });
+            }
+        });
         socket.open();
 
-        assertThat(messages.take(), is("hello client"));
-        assertThat(messages.take(), is(opts.cookie));
+        assertThat(messages.take(), is("foo"));
+        assertThat(messages.take(), is("foo"));
         socket.close();
     }
 }

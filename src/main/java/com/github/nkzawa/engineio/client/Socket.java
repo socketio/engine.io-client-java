@@ -76,6 +76,11 @@ public abstract class Socket extends Emitter {
     public static final String EVENT_HEARTBEAT = "heartbeat";
     public static final String EVENT_DATA = "data";
 
+    /**
+     * Called on a new transport is created.
+     */
+    public static final String EVENT_TRANSPORT = "transport";
+
     private static final Runnable noop = new Runnable() {
         @Override
         public void run() {}
@@ -99,7 +104,6 @@ public abstract class Socket extends Emitter {
     private String hostname;
     private String path;
     private String timestampParam;
-    private String cookie;
     private List<String> transports;
     private List<String> upgrades;
     private Map<String, String> query;
@@ -163,7 +167,6 @@ public abstract class Socket extends Emitter {
         this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
-        this.cookie = opts.cookie;
     }
 
     /**
@@ -201,7 +204,6 @@ public abstract class Socket extends Emitter {
         opts.timestampRequests = this.timestampRequests;
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
-        opts.cookie = this.cookie;
 
         if (WebSocket.NAME.equals(name)) {
             return new WebSocket(opts);
@@ -222,6 +224,8 @@ public abstract class Socket extends Emitter {
         }
 
         this.transport = transport;
+
+        self.emit(EVENT_TRANSPORT, transport);
 
         transport.on(Transport.EVENT_DRAIN, new Listener() {
             @Override
