@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class WebSocket extends Transport {
@@ -33,14 +34,25 @@ public class WebSocket extends Transport {
             return;
         }
 
+        Map<String, String> headers = new HashMap<String, String>();
+        this.emit(EVENT_REQUEST_HEADERS, headers);
+
         final WebSocket self = this;
         try {
-            this.socket = new WebSocketClient(new URI(this.uri()), new Draft_17()) {
+            this.socket = new WebSocketClient(new URI(this.uri()), new Draft_17(), headers, 0) {
                 @Override
-                public void onOpen(ServerHandshake serverHandshake) {
+                public void onOpen(final ServerHandshake serverHandshake) {
                     EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
+                            Map<String, String> headers = new HashMap<String, String>();
+                            Iterator<String> it = serverHandshake.iterateHttpFields();
+                            while (it.hasNext()) {
+                                String field = it.next();
+                                headers.put(field, serverHandshake.getFieldValue(field));
+                            }
+                            self.emit(EVENT_RESPONSE_HEADERS, headers);
+
                             self.onOpen();
                         }
                     });

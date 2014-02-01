@@ -2,7 +2,7 @@ package com.github.nkzawa.engineio.client;
 
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
-import com.github.nkzawa.engineio.client.transports.PollingXHR;
+import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.engineio.parser.HandshakeData;
 import org.junit.After;
 import org.junit.Before;
@@ -244,8 +244,6 @@ public class ServerConnectionTest {
             @Override
             public void call(Object... args) {
                 Transport transport = (Transport)args[0];
-                if (!(transport instanceof PollingXHR)) return;
-
                 transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
@@ -266,6 +264,50 @@ public class ServerConnectionTest {
         socket.open();
 
         assertThat(messages.take(), is("foo"));
+        assertThat(messages.take(), is("foo"));
+        socket.close();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void websocketHandshakeHeaders() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
+
+        Socket.Options opts = new Socket.Options();
+        opts.transports = new String[] {WebSocket.NAME};
+
+        socket = new Socket("ws://localhost:" + PORT, opts) {
+            @Override
+            public void onopen() {}
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
+        };
+        socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Transport transport = (Transport)args[0];
+                transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> headers = (Map<String, String>)args[0];
+                        headers.put("X-EngineIO", "foo");
+                    }
+                }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> headers = (Map<String, String>)args[0];
+                        messages.offer(headers.get("X-EngineIO"));
+                    }
+                });
+            }
+        });
+        socket.open();
+
         assertThat(messages.take(), is("foo"));
         socket.close();
     }
