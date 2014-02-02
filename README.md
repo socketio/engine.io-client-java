@@ -56,9 +56,40 @@ How to set options:
 
 ```java
 opts = new Socket.Options();
-opts.cookie = "foo=1;";
+opts.transports = new String[] {WebSocket.NAME};
 
 socket = new Socket("ws://localhost", opts) { ... };
+```
+
+### Extra Features only for Java Client
+Some features are added for simulating browser behavior like handling cookies.
+
+```java
+socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
+  @Override
+  public void call(Object... args) {
+    // Called on a new transport created.
+    Transport transport = (Transport)args[0];
+
+    transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
+      @Override
+      public void call(Object... args) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> headers = (Map<String, String>)args[0];
+        // send cookies to server.
+        headers.put("cookie", "foo=1;");
+      }
+    }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+      @Override
+      public void call(Object... args) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> headers = (Map<String, String>)args[0];
+        // get cookies from server.
+        String cookie = headers.get("set-cookie"));
+      }
+    });
+  }
+});
 ```
 
 See the Javadoc for more details.
