@@ -61,7 +61,7 @@ opts.transports = new String[] {WebSocket.NAME};
 socket = new Socket("ws://localhost", opts) { ... };
 ```
 
-### Extra Features only for Java Client
+### Extra features only for Java client
 Some features are added for simulating browser behavior like handling cookies.
 
 ```java
@@ -77,7 +77,7 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
         @SuppressWarnings("unchecked")
         Map<String, String> headers = (Map<String, String>)args[0];
         // send cookies to server.
-        headers.put("cookie", "foo=1;");
+        headers.put("Cookie", "foo=1;");
       }
     }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
       @Override
@@ -85,7 +85,7 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
         @SuppressWarnings("unchecked")
         Map<String, String> headers = (Map<String, String>)args[0];
         // get cookies from server.
-        String cookie = headers.get("set-cookie"));
+        String cookie = headers.get("Set-Cookie"));
       }
     });
   }
