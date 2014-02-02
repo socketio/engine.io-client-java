@@ -7,8 +7,8 @@ import com.github.nkzawa.engineio.client.EventThread;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -41,10 +41,7 @@ public class PollingXHR extends Polling {
             @Override
             public void call(Object... args) {
                 // Never execute asynchronously for support to modify headers.
-                @SuppressWarnings("unchecked")
-                Map<String, String> headers = args.length > 0 && args[0] instanceof Map ?
-                        (Map<String, String>)args[0] : new HashMap<String, String>();
-                self.emit(EVENT_REQUEST_HEADERS, headers);
+                self.emit(EVENT_REQUEST_HEADERS, args[0]);
             }
         }).on(Request.EVENT_RESPONSE_HEADERS, new Listener() {
             @Override
@@ -52,10 +49,7 @@ public class PollingXHR extends Polling {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        @SuppressWarnings("unchecked")
-                        final Map<String, String> headers = args.length > 0 && args[0] instanceof Map ?
-                                (Map<String, String>)args[0] : new HashMap<String, String>();
-                        self.emit(EVENT_RESPONSE_HEADERS, headers);
+                        self.emit(EVENT_RESPONSE_HEADERS, args[0]);
                     }
                 });
             }
@@ -161,7 +155,7 @@ public class PollingXHR extends Polling {
                 return;
             }
 
-            Map<String, String> headers = new HashMap<String, String>();
+            Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
             if ("POST".equals(this.method)) {
                 xhr.setDoOutput(true);
@@ -188,8 +182,9 @@ public class PollingXHR extends Polling {
                             writer.flush();
                         }
 
-                        Map<String, String> headers = new HashMap<String, String>();
+                        Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
                         for (String key : xhr.getHeaderFields().keySet()) {
+                            if (key == null) continue;
                             headers.put(key, xhr.getHeaderField(key));
                         }
                         self.onResponseHeaders(headers);

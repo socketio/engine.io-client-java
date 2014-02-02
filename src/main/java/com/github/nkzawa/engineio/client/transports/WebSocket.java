@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class WebSocket extends Transport {
 
@@ -34,7 +35,7 @@ public class WebSocket extends Transport {
             return;
         }
 
-        Map<String, String> headers = new HashMap<String, String>();
+        Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
@@ -45,10 +46,11 @@ public class WebSocket extends Transport {
                     EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
-                            Map<String, String> headers = new HashMap<String, String>();
+                            Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
                             Iterator<String> it = serverHandshake.iterateHttpFields();
                             while (it.hasNext()) {
                                 String field = it.next();
+                                if (field == null) continue;
                                 headers.put(field, serverHandshake.getFieldValue(field));
                             }
                             self.emit(EVENT_RESPONSE_HEADERS, headers);
