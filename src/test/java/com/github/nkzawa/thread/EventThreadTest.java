@@ -1,5 +1,6 @@
-package com.github.nkzawa.engineio.client;
+package com.github.nkzawa.thread;
 
+import com.github.nkzawa.thread.EventThread;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

@@ -4,6 +4,7 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.engineio.parser.HandshakeData;
+import com.github.nkzawa.thread.EventThread;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

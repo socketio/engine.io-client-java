@@ -7,6 +7,7 @@ import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.engineio.parser.HandshakeData;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
+import com.github.nkzawa.thread.EventThread;
 import com.google.gson.Gson;
 
 import java.net.URI;

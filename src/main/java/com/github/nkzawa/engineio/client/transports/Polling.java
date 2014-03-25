@@ -1,7 +1,7 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
-import com.github.nkzawa.engineio.client.EventThread;
+import com.github.nkzawa.thread.EventThread;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;

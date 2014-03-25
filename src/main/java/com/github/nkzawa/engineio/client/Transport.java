@@ -4,6 +4,7 @@ package com.github.nkzawa.engineio.client;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
+import com.github.nkzawa.thread.EventThread;
 
 import java.util.Map;
 

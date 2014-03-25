@@ -2,7 +2,7 @@ package com.github.nkzawa.engineio.client.transports;
 
 
 import com.github.nkzawa.emitter.Emitter;
-import com.github.nkzawa.engineio.client.EventThread;
+import com.github.nkzawa.thread.EventThread;
 
 import java.io.*;
 import java.net.HttpURLConnection;
