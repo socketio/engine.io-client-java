@@ -311,4 +311,127 @@ public class ServerConnectionTest {
         assertThat(messages.take(), is("foo"));
         socket.close();
     }
+
+    @Test(timeout = TIMEOUT)
+    public void rememberWebsocket() throws URISyntaxException, InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
+
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                Socket.Options opts = new Socket.Options();
+                opts.port = PORT;
+
+                final Socket socket = new Socket(opts) {
+                    @Override
+                    public void onopen() {
+                    }
+
+                    @Override
+                    public void onmessage(String data) {
+                    }
+
+                    @Override
+                    public void onclose() {
+                    }
+
+                    @Override
+                    public void onerror(Exception err) {
+                    }
+                };
+
+                socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        Transport transport = (Transport) args[0];
+                        socket.close();
+                        if (WebSocket.NAME.equals(transport.name)) {
+                            Socket.Options opts = new Socket.Options();
+                            opts.port = PORT;
+                            opts.rememberUpgrade = true;
+
+                            final Socket socket2 = new Socket(opts) {
+                                @Override
+                                public void onopen() {
+                                }
+
+                                @Override
+                                public void onmessage(String data) {
+                                }
+
+                                @Override
+                                public void onclose() {
+                                }
+
+                                @Override
+                                public void onerror(Exception err) {
+                                }
+                            };
+                            socket2.open();
+                            assertThat(socket2.transport.name, is(WebSocket.NAME));
+                        }
+                        semaphore.release();
+                    }
+                });
+                socket.open();
+                assertThat(socket.transport.name, is(Polling.NAME));
+            }
+        });
+        semaphore.acquire();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void notRememberWebsocket() throws URISyntaxException, InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
+
+        EventThread.exec(new Runnable() {
+            @Override
+            public void run() {
+                Socket.Options opts = new Socket.Options();
+                opts.port = PORT;
+
+                final Socket socket = new Socket(opts) {
+                    @Override
+                    public void onopen() {}
+                    @Override
+                    public void onmessage(String data) {}
+                    @Override
+                    public void onclose() {}
+                    @Override
+                    public void onerror(Exception err) {}
+                };
+
+                socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        Transport transport = (Transport)args[0];
+                        socket.close();
+                        if (WebSocket.NAME.equals(transport.name)) {
+                            Socket.Options opts = new Socket.Options();
+                            opts.port = PORT;
+                            opts.rememberUpgrade = false;
+
+                            final Socket socket2 = new Socket(opts) {
+                                @Override
+                                public void onopen() {}
+                                @Override
+                                public void onmessage(String data) {}
+                                @Override
+                                public void onclose() {}
+                                @Override
+                                public void onerror(Exception err) {}
+                            };
+                            socket2.open();
+                            assertThat(socket2.transport.name, is(not(WebSocket.NAME)));
+                        }
+                        semaphore.release();
+                    }
+                });
+                socket.open();
+                assertThat(socket.transport.name, is(Polling.NAME));
+            }
+        });
+        semaphore.acquire();
+    }
+
 }

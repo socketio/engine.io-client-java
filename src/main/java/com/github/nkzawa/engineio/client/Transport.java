@@ -36,6 +36,7 @@ public abstract class Transport extends Emitter {
     protected String path;
     protected String hostname;
     protected String timestampParam;
+    protected Socket socket;
 
     protected ReadyState readyState;
 
@@ -47,6 +48,7 @@ public abstract class Transport extends Emitter {
         this.query = opts.query;
         this.timestampParam = opts.timestampParam;
         this.timestampRequests = opts.timestampRequests;
+        this.socket = opts.socket;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -131,5 +133,6 @@ public abstract class Transport extends Emitter {
         public int port;
         public int policyPort;
         public Map<String, String> query;
+        protected Socket socket;
     }
 }

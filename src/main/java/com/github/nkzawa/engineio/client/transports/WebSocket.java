@@ -22,7 +22,7 @@ public class WebSocket extends Transport {
 
     public static final String NAME = "websocket";
 
-    private WebSocketClient socket;
+    private WebSocketClient ws;
 
 
     public WebSocket(Options opts) {
@@ -40,7 +40,7 @@ public class WebSocket extends Transport {
 
         final WebSocket self = this;
         try {
-            this.socket = new WebSocketClient(new URI(this.uri()), new Draft_17(), headers, 0) {
+            this.ws = new WebSocketClient(new URI(this.uri()), new Draft_17(), headers, 0) {
                 @Override
                 public void onOpen(final ServerHandshake serverHandshake) {
                     EventThread.exec(new Runnable() {
@@ -87,7 +87,7 @@ public class WebSocket extends Transport {
                     });
                 }
             };
-            this.socket.connect();
+            this.ws.connect();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -97,7 +97,7 @@ public class WebSocket extends Transport {
         final WebSocket self = this;
         this.writable = false;
         for (Packet packet : packets) {
-            this.socket.send(Parser.encodePacket(packet));
+            this.ws.send(Parser.encodePacket(packet));
         }
 
         final Runnable ondrain = new Runnable() {
@@ -119,8 +119,8 @@ public class WebSocket extends Transport {
     }
 
     protected void doClose() {
-        if (this.socket != null) {
-            this.socket.close();
+        if (this.ws != null) {
+            this.ws.close();
         }
     }
 

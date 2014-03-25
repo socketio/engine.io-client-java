@@ -244,10 +244,12 @@ public class PollingXHR extends Polling {
         }
 
         private void cleanup() {
-            if (xhr != null) {
-                xhr.disconnect();
-                xhr = null;
+            if (xhr == null) {
+                return;
             }
+
+            xhr.disconnect();
+            xhr = null;
         }
 
         public void abort() {

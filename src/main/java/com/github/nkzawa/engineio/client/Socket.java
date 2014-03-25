@@ -91,10 +91,13 @@ public abstract class Socket extends Emitter {
      */
     public static final int protocol = Parser.protocol;
 
+    public static boolean priorWebsocketSuccess = false;
+
     private boolean secure;
     private boolean upgrade;
     private boolean timestampRequests;
     private boolean upgrading;
+    private boolean rememberUpgrade;
     private int port;
     private int policyPort;
     private int prevBufferLen;
@@ -109,13 +112,17 @@ public abstract class Socket extends Emitter {
     private Map<String, String> query;
     private LinkedList<Packet> writeBuffer = new LinkedList<Packet>();
     private LinkedList<Runnable> callbackBuffer = new LinkedList<Runnable>();
-    private Transport transport;
+    /*package*/ Transport transport;
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 
+
+    public Socket() {
+        this(new Options());
+    }
 
     /**
      * Creates a socket.
@@ -167,6 +174,7 @@ public abstract class Socket extends Emitter {
         this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
+        this.rememberUpgrade = opts.rememberUpgrade;
     }
 
     /**
@@ -176,7 +184,12 @@ public abstract class Socket extends Emitter {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                String transportName = Socket.this.transports.get(0);
+                String transportName;
+                if (Socket.this.rememberUpgrade && Socket.priorWebsocketSuccess && Socket.this.transports.contains(WebSocket.NAME)) {
+                    transportName = WebSocket.NAME;
+                } else {
+                    transportName = Socket.this.transports.get(0);
+                }
                 Socket.this.readyState = ReadyState.OPENING;
                 Transport transport = Socket.this.createTransport(transportName);
                 Socket.this.setTransport(transport);
@@ -204,6 +217,7 @@ public abstract class Socket extends Emitter {
         opts.timestampRequests = this.timestampRequests;
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
+        opts.socket = this;
 
         if (WebSocket.NAME.equals(name)) {
             return new WebSocket(opts);
@@ -256,6 +270,8 @@ public abstract class Socket extends Emitter {
         final boolean[] failed = new boolean[] {false};
         final Socket self = this;
 
+        Socket.priorWebsocketSuccess = false;
+
         final Listener onerror = new Listener() {
             @Override
             public void call(Object... args) {
@@ -292,6 +308,7 @@ public abstract class Socket extends Emitter {
                             logger.fine(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
+                            Socket.priorWebsocketSuccess = WebSocket.NAME.equals(transport[0].name);
 
                             logger.fine(String.format("pausing current transport '%s'", self.transport.name));
                             ((Polling)self.transport).pause(new Runnable() {
@@ -304,10 +321,10 @@ public abstract class Socket extends Emitter {
 
                                     logger.fine("changing transport and sending upgrade packet");
                                     transport[0].off(Transport.EVENT_ERROR, onerror);
-                                    self.emit(EVENT_UPGRADE, transport[0]);
                                     self.setTransport(transport[0]);
                                     Packet packet = new Packet(Packet.UPGRADE);
                                     transport[0].send(new Packet[]{packet});
+                                    self.emit(EVENT_UPGRADE, transport[0]);
                                     transport[0] = null;
                                     self.upgrading = false;
                                     self.flush();
@@ -356,6 +373,7 @@ public abstract class Socket extends Emitter {
     private void onOpen() {
         logger.fine("socket open");
         this.readyState = ReadyState.OPEN;
+        Socket.priorWebsocketSuccess = WebSocket.NAME.equals(this.transport.name);
         this.emit(EVENT_OPEN);
         this.onopen();
         this.flush();
@@ -574,6 +592,7 @@ public abstract class Socket extends Emitter {
 
     private void onError(Exception err) {
         logger.fine(String.format("socket error %s", err));
+        Socket.priorWebsocketSuccess = false;
         this.emit(EVENT_ERROR, err);
         this.onerror(err);
         this.onClose("transport error", err);
@@ -605,21 +624,21 @@ public abstract class Socket extends Emitter {
                 }
             });
 
+            // ensure transport won't stay open
+            this.transport.close();
+
             // ignore further transport communication
             this.transport.off();
 
             // set ready state
-            ReadyState prev = this.readyState;
             this.readyState = ReadyState.CLOSED;
 
             // clear session id
             this.id = null;
 
-            // emit events
-            if (prev == ReadyState.OPEN) {
-                this.emit(EVENT_CLOSE, reason, desc);
-                this.onclose();
-            }
+            // emit close events
+            this.emit(EVENT_CLOSE, reason, desc);
+            this.onclose();
         }
     }
 
@@ -653,6 +672,7 @@ public abstract class Socket extends Emitter {
          */
         public boolean upgrade = true;
 
+        public boolean rememberUpgrade;
         public String host;
         public String query;
 

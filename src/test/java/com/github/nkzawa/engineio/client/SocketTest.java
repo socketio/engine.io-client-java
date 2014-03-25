@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Semaphore;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -42,13 +43,14 @@ public class SocketTest {
     }
 
     /**
-     * should not emit close on incorrect connection.
+     * should emit close on incorrect connection.
      *
      * @throws URISyntaxException
      * @throws InterruptedException
      */
     @Test
     public void socketClosing() throws URISyntaxException, InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
         Socket socket = new Socket("ws://0.0.0.0:8080") {
             @Override
             public void onopen() {}
@@ -68,7 +70,8 @@ public class SocketTest {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        assertThat(closed[0], is(false));
+                        assertThat(closed[0], is(true));
+                        semaphore.release();
                     }
                 }, 20);
             }
@@ -81,5 +84,7 @@ public class SocketTest {
             }
         });
         socket.open();
+        semaphore.acquire();
     }
+
 }

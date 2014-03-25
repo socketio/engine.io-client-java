@@ -14,6 +14,8 @@ import static org.junit.Assert.assertThat;
 @RunWith(JUnit4.class)
 public class TransportTest {
 
+    // NOTE: tests for the rememberUpgrade option are on ServerConnectionTest.
+
     @Test
     public void uri() {
         Transport.Options opt = new Transport.Options();
