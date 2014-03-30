@@ -7,6 +7,9 @@ import com.github.nkzawa.thread.EventThread;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
@@ -57,7 +60,8 @@ public class PollingXHR extends Polling {
         return req;
     }
 
-    protected void doWrite(String data, final Runnable fn) {
+    @Override
+    protected void doWrite(byte[] data, final Runnable fn) {
         Request.Options opts = new Request.Options();
         opts.method = "POST";
         opts.data = data;
@@ -90,6 +94,7 @@ public class PollingXHR extends Polling {
         this.sendXhr = req;
     }
 
+    @Override
     protected void doPoll() {
         logger.fine("xhr poll");
         Request req = this.request();
@@ -100,8 +105,12 @@ public class PollingXHR extends Polling {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        String data = args.length > 0 ? (String) args[0] : null;
-                        self.onData(data);
+                        Object arg = args.length > 0 ? args[0] : null;
+                        if (arg instanceof String) {
+                            self.onData((String)arg);
+                        } else if (arg instanceof byte[]) {
+                            self.onData((byte[])arg);
+                        }
                     }
                 });
             }
@@ -134,7 +143,7 @@ public class PollingXHR extends Polling {
 
         String method;
         String uri;
-        String data;
+        byte[] data;
         HttpURLConnection xhr;
 
         public Request(Options opts) {
@@ -159,7 +168,7 @@ public class PollingXHR extends Polling {
 
             if ("POST".equals(this.method)) {
                 xhr.setDoOutput(true);
-                headers.put("Content-type", "text/plain;charset=UTF-8");
+                headers.put("Content-type", "application/octet-stream");
             }
 
             self.onRequestHeaders(headers);
@@ -171,15 +180,15 @@ public class PollingXHR extends Polling {
             xhrService.submit(new Runnable() {
                 @Override
                 public void run() {
-                    BufferedWriter writer = null;
+                    OutputStream output = null;
+                    InputStream input = null;
                     BufferedReader reader = null;
                     try {
                         if (self.data != null) {
-                            byte[] data = self.data.getBytes("UTF-8");
-                            xhr.setFixedLengthStreamingMode(data.length);
-                            writer = new BufferedWriter(new OutputStreamWriter(xhr.getOutputStream()));
-                            writer.write(self.data);
-                            writer.flush();
+                            xhr.setFixedLengthStreamingMode(self.data.length);
+                            output = new BufferedOutputStream(xhr.getOutputStream());
+                            output.write(self.data);
+                            output.flush();
                         }
 
                         Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
@@ -189,28 +198,46 @@ public class PollingXHR extends Polling {
                         }
                         self.onResponseHeaders(headers);
 
-                        StringBuilder data = null;
-
                         final int statusCode = xhr.getResponseCode();
                         if (HttpURLConnection.HTTP_OK == statusCode) {
-                            String line;
-                            data = new StringBuilder();
-                            reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                            while ((line = reader.readLine()) != null) {
-                                data.append(line);
+                            String contentType = xhr.getContentType();
+                            if ("application/octet-stream".equalsIgnoreCase(contentType)) {
+                                input = new BufferedInputStream(xhr.getInputStream());
+                                List<byte[]> buffers = new ArrayList<byte[]>();
+                                int capacity = 0;
+                                int len = 0;
+                                byte[] buffer = new byte[1024];
+                                while ((len = input.read(buffer)) > 0) {
+                                    byte[] _buffer = new byte[len];
+                                    System.arraycopy(buffer, 0, _buffer, 0, len);
+                                    buffers.add(_buffer);
+                                    capacity += len;
+                                }
+                                ByteBuffer data = ByteBuffer.allocate(capacity);
+                                for (byte[] b : buffers) {
+                                    data.put(b);
+                                }
+                                self.onData(data.array());
+                            } else {
+                                String line;
+                                StringBuilder data = new StringBuilder();
+                                reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
+                                while ((line = reader.readLine()) != null) {
+                                    data.append(line);
+                                }
+                                self.onData(data.toString());
                             }
                         } else {
                             self.onError(new IOException(Integer.toString(statusCode)));
-                        }
-
-                        if (data != null) {
-                            self.onData(data.toString());
                         }
                     } catch (IOException e) {
                         self.onError(e);
                     } finally {
                         try {
-                            if (writer != null) writer.close();
+                            if (output != null) output.close();
+                        } catch (IOException e) {}
+                        try {
+                            if (input != null) input.close();
                         } catch (IOException e) {}
                         try {
                             if (reader != null) reader.close();
@@ -226,6 +253,11 @@ public class PollingXHR extends Polling {
         }
 
         private void onData(String data) {
+            this.emit(EVENT_DATA, data);
+            this.onSuccess();
+        }
+
+        private void onData(byte[] data) {
             this.emit(EVENT_DATA, data);
             this.onSuccess();
         }
@@ -260,7 +292,7 @@ public class PollingXHR extends Polling {
 
             public String uri;
             public String method;
-            public String data;
+            public byte[] data;
         }
     }
 }

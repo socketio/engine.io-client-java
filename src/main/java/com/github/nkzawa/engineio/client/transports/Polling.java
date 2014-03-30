@@ -1,11 +1,11 @@
 package com.github.nkzawa.engineio.client.transports;
 
 
-import com.github.nkzawa.thread.EventThread;
 import com.github.nkzawa.engineio.client.Transport;
 import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
+import com.github.nkzawa.thread.EventThread;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -94,11 +94,20 @@ abstract public class Polling extends Transport {
         this.emit(EVENT_POLL);
     }
 
+    @Override
     protected void onData(String data) {
+        _onData(data);
+    }
+
+    @Override
+    protected void onData(byte[] data) {
+        _onData(data);
+    }
+
+    private void _onData(Object data) {
         final Polling self = this;
         logger.fine(String.format("polling got data %s", data));
-
-        Parser.decodePayload(data, new Parser.DecodePayloadCallback() {
+        Parser.DecodePayloadCallback callback = new Parser.DecodePayloadCallback() {
             @Override
             public boolean call(Packet packet, int index, int total) {
                 if (self.readyState == ReadyState.OPENING) {
@@ -113,7 +122,13 @@ abstract public class Polling extends Transport {
                 self.onPacket(packet);
                 return true;
             }
-        });
+        };
+
+        if (data instanceof String) {
+            Parser.decodePayload((String)data, callback);
+        } else if (data instanceof byte[]) {
+            Parser.decodePayload((byte[])data, callback);
+        }
 
         if (this.readyState != ReadyState.CLOSED) {
             this.polling = false;
@@ -134,7 +149,7 @@ abstract public class Polling extends Transport {
             @Override
             public void call(Object... args) {
                 logger.fine("writing close packet");
-                self.write(new Packet[] {new Packet(Packet.CLOSE, null)});
+                self.write(new Packet[] {new Packet(Packet.CLOSE)});
             }
         };
 
@@ -152,11 +167,18 @@ abstract public class Polling extends Transport {
     protected void write(Packet[] packets) {
         final Polling self = this;
         this.writable = false;
-        this.doWrite(Parser.encodePayload(packets), new Runnable() {
+        final Runnable callbackfn = new Runnable() {
             @Override
             public void run() {
                 self.writable = true;
                 self.emit(EVENT_DRAIN);
+            }
+        };
+
+        Parser.encodePayload(packets, new Parser.EncodeCallback<byte[]>() {
+            @Override
+            public void call(byte[] data) {
+                self.doWrite(data, callbackfn);
             }
         });
     }
@@ -187,7 +209,7 @@ abstract public class Polling extends Transport {
         return schema + "://" + this.hostname + port + this.path + _query;
     }
 
-    abstract protected void doWrite(String data, Runnable fn);
+    abstract protected void doWrite(byte[] data, Runnable fn);
 
     abstract protected void doPoll();
 }

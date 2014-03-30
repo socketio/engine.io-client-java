@@ -12,6 +12,7 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -78,6 +79,15 @@ public class WebSocket extends Transport {
                     });
                 }
                 @Override
+                public void onMessage(final ByteBuffer s) {
+                    EventThread.exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onData(s.array());
+                        }
+                    });
+                }
+                @Override
                 public void onError(final Exception e) {
                     EventThread.exec(new Runnable() {
                         @Override
@@ -97,7 +107,16 @@ public class WebSocket extends Transport {
         final WebSocket self = this;
         this.writable = false;
         for (Packet packet : packets) {
-            this.ws.send(Parser.encodePacket(packet));
+            Parser.encodePacket(packet, new Parser.EncodeCallback() {
+                @Override
+                public void call(Object packet) {
+                    if (packet instanceof String) {
+                        self.ws.send((String) packet);
+                    } else if (packet instanceof byte[]) {
+                        self.ws.send((byte[]) packet);
+                    }
+                }
+            });
         }
 
         final Runnable ondrain = new Runnable() {

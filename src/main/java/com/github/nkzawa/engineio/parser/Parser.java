@@ -1,12 +1,17 @@
 package com.github.nkzawa.engineio.parser;
 
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Parser {
 
-    public static final int protocol = 2;
+    public static final int protocol = 3;
+
     private static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
         put(Packet.OPEN, 0);
         put(Packet.CLOSE, 1);
@@ -16,54 +21,116 @@ public class Parser {
         put(Packet.UPGRADE, 5);
         put(Packet.NOOP, 6);
     }};
-    private static final Map<Integer, String> bipackets = new HashMap<Integer, String>();
+
+    private static final Map<Integer, String> packetslist = new HashMap<Integer, String>();
     static {
         for (Map.Entry<String, Integer> entry : packets.entrySet()) {
-            bipackets.put(entry.getValue(), entry.getKey());
+            packetslist.put(entry.getValue(), entry.getKey());
         }
     }
 
-    private static Packet err = new Packet(Packet.ERROR, "parser error");
+    private static Packet<String> err = new Packet<String>(Packet.ERROR, "parser error");
 
 
     private Parser() {}
 
-    public static String encodePacket(Packet packet) {
+    public static void encodePacket(Packet packet, EncodeCallback callback) {
+        if (packet.data instanceof byte[]) {
+            @SuppressWarnings("unchecked")
+            Packet<byte[]> _packet = packet;
+            @SuppressWarnings("unchecked")
+            EncodeCallback<byte[]> _callback = callback;
+            encodeByteArray(_packet, _callback);
+            return;
+        }
+
         String encoded = String.valueOf(packets.get(packet.type));
 
-        if (packet.data != null) {
+        if (null != packet.data) {
             encoded += packet.data;
         }
-        return encoded;
+
+        @SuppressWarnings("unchecked")
+        EncodeCallback<String> _callback = callback;
+        _callback.call(encoded);
     }
 
-    public static Packet decodePacket(String data) {
-        int type = -1;
+    private static void encodeByteArray(Packet<byte[]> packet, EncodeCallback<byte[]> callback) {
+        byte[] data = packet.data;
+        byte[] resultArray = new byte[1 + data.length];
+        resultArray[0] = packets.get(packet.type).byteValue();
+        System.arraycopy(data, 0, resultArray, 1, data.length);
+        callback.call(resultArray);
+    }
+
+    public static Packet<String> decodePacket(String data) {
+        int type;
         try {
             type = Character.getNumericValue(data.charAt(0));
-        } catch(IndexOutOfBoundsException e) {}
-        if (type < 0 || type >= packets.size()) {
+        } catch (IndexOutOfBoundsException e) {
+            type = -1;
+        }
+
+        if (type < 0 || type >= packetslist.size()) {
             return err;
         }
 
-        return new Packet(bipackets.get(type), data.length() > 1 ? data.substring(1) : null);
+        if (data.length() > 1) {
+            return new Packet<String>(packetslist.get(type), data.substring(1));
+        } else {
+            return new Packet<String>(packetslist.get(type));
+        }
     }
 
-    public static String encodePayload(Packet[] packets) {
+    public static Packet<byte[]> decodePacket(byte[] data) {
+        int type = data[0];
+        byte[] intArray = new byte[data.length - 1];
+        System.arraycopy(data, 1, intArray, 0, intArray.length);
+        return new Packet<byte[]>(packetslist.get(type), intArray);
+    }
+
+    public static void encodePayload(Packet[] packets, EncodeCallback<byte[]> callback) {
         if (packets.length == 0) {
-            return "0:";
+            callback.call(new byte[0]);
+            return;
         }
 
-        StringBuilder encoded = new StringBuilder();
+        final ArrayList<ByteBuffer> results = new ArrayList<ByteBuffer>(packets.length);
+
         for (Packet packet : packets) {
-            String message = encodePacket(packet);
-            encoded.append(message.length()).append(":").append(message);
+            encodePacket(packet, new EncodeCallback() {
+                @Override
+                public void call(Object packet) {
+                    if (packet instanceof String) {
+                        String encodingLength = String.valueOf(((String)packet).getBytes(Charset.forName("UTF-8")).length);
+                        ByteBuffer sizeBuffer = ByteBuffer.allocate(encodingLength.length() + 2);
+
+                        sizeBuffer.put((byte)0); // is a string
+                        for (char ch : encodingLength.toCharArray()) {
+                            sizeBuffer.put((byte)Character.getNumericValue(ch));
+                        }
+                        sizeBuffer.put((byte)255);
+                        results.add(Buffer.concat(new ByteBuffer[] {sizeBuffer,
+                                ByteBuffer.wrap(((String)packet).getBytes(Charset.forName("UTF-8")))}));
+                        return;
+                    }
+
+                    String encodingLength = String.valueOf(((ByteBuffer)packet).capacity());
+                    ByteBuffer sizeBuffer = ByteBuffer.allocate(encodingLength.length() + 2);
+                    sizeBuffer.put((byte)1); // is binary
+                    for (char ch : encodingLength.toCharArray()) {
+                        sizeBuffer.put((byte)ch);
+                    }
+                    sizeBuffer.put((byte)255);
+                    results.add(Buffer.concat(new ByteBuffer[] {sizeBuffer, (ByteBuffer)packet}));
+                }
+            });
         }
 
-        return encoded.toString();
+        callback.call(Buffer.concat(results.toArray(new ByteBuffer[results.size()])).array());
     }
 
-    public static void decodePayload(String data, DecodePayloadCallback callback) {
+    public static void decodePayload(String data, DecodePayloadCallback<String> callback) {
         if (data == null || data.isEmpty()) {
             callback.call(err, 0, 1);
             return;
@@ -93,7 +160,8 @@ public class Parser {
                 }
 
                 if (msg.length() != 0) {
-                    Packet packet = decodePacket(msg);
+                    Packet<String> packet = decodePacket(msg);
+
                     if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
                         callback.call(err, 0, 1);
                         return;
@@ -113,8 +181,91 @@ public class Parser {
         }
     }
 
-    public static interface DecodePayloadCallback {
+    public static void decodePayload(byte[] data, DecodePayloadCallback callback) {
+        ByteBuffer bufferTail = ByteBuffer.wrap(data);
+        List<Object> buffers = new ArrayList<Object>();
 
-        public boolean call(Packet packet, int index, int total);
+        while (bufferTail.capacity() > 0) {
+            StringBuilder strLen = new StringBuilder();
+            boolean isString = (bufferTail.get(0) & 0xFF) == 0;
+            for (int i = 1; ; i++) {
+                int b = bufferTail.get(i) & 0xFF;
+                if (b == 255) break;
+                strLen.append(b);
+            }
+            bufferTail.position(strLen.length() + 1);
+            bufferTail = bufferTail.slice();
+
+            int msgLength = Integer.parseInt(strLen.toString());
+
+            bufferTail.position(1);
+            bufferTail.limit(msgLength + 1);
+            byte[] msg = new byte[bufferTail.remaining()];
+            bufferTail.get(msg);
+            if (isString) {
+                buffers.add(new String(msg, Charset.forName("UTF-8")));
+            } else {
+                buffers.add(msg);
+            }
+            bufferTail.clear();
+            bufferTail.position(msgLength + 1);
+            bufferTail = bufferTail.slice();
+        }
+
+        int total = buffers.size();
+        for (int i = 0; i < total; i++) {
+            Object buffer = buffers.get(i);
+            if (buffer instanceof String) {
+                @SuppressWarnings("unchecked")
+                DecodePayloadCallback<String> _callback = callback;
+                _callback.call(decodePacket((String)buffer), i, total);
+            } else if (buffer instanceof byte[]) {
+                @SuppressWarnings("unchecked")
+                DecodePayloadCallback<byte[]> _callback = callback;
+                _callback.call(decodePacket((byte[])buffer), i, total);
+            }
+        }
+    }
+
+
+    public static interface EncodeCallback<T> {
+
+        public void call(T data);
+    }
+
+
+    public static interface DecodePayloadCallback<T> {
+
+        public boolean call(Packet<T> packet, int index, int total);
+    }
+}
+
+
+class Buffer {
+
+    private Buffer() {}
+
+    public static ByteBuffer concat(ByteBuffer[] list) {
+        int length = 0;
+        for (ByteBuffer buf : list) {
+            length += buf.capacity();
+        }
+        return concat(list, length);
+    }
+
+    public static ByteBuffer concat(ByteBuffer[] list, int length) {
+        if (list.length == 0) {
+            return ByteBuffer.allocate(0);
+        } else if (list.length == 1) {
+            return list[0];
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(length);
+        for (ByteBuffer buf : list) {
+            buf.clear();
+            buffer.put(buf);
+        }
+
+        return buffer;
     }
 }

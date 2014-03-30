@@ -108,6 +108,10 @@ public abstract class Transport extends Emitter {
         this.onPacket(Parser.decodePacket(data));
     }
 
+    protected void onData(byte[] data) {
+        this.onPacket(Parser.decodePacket(data));
+    }
+
     protected void onPacket(Packet packet) {
         this.emit(EVENT_PACKET, packet);
     }

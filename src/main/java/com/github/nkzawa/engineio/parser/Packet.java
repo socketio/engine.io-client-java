@@ -1,7 +1,7 @@
 package com.github.nkzawa.engineio.parser;
 
 
-public class Packet {
+public class Packet<T> {
 
     static final public String OPEN = "open";
     static final public String CLOSE = "close";
@@ -13,13 +13,14 @@ public class Packet {
     static final public String ERROR = "error";
 
     public String type;
-    public String data;
+    public T data;
+
 
     public Packet(String type) {
         this(type, null);
     }
 
-    public Packet(String type, String data) {
+    public Packet(String type, T data) {
         this.type = type;
         this.data = data;
     }
