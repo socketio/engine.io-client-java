@@ -288,4 +288,86 @@ public class ParserTest {
             }
         });
     }
+
+    @Test
+    public void encodeBinaryMessage() {
+        final byte[] data = new byte[5];
+        for (int i = 0; i < data.length; i++) {
+            data[0] = (byte)i;
+        }
+        encodePacket(new Packet<byte[]>(Packet.MESSAGE, data), new EncodeCallback<byte[]>() {
+            @Override
+            public void call(byte[] encoded) {
+                Packet<byte[]> p = decodePacket(encoded);
+                assertThat(p.type, is(Packet.MESSAGE));
+                assertThat(p.data, is(data));
+            }
+        });
+    }
+
+    @Test
+    public void encodeBinaryContents() {
+        final byte[] firstBuffer = new byte[5];
+        for (int i = 0 ; i < firstBuffer.length; i++) {
+            firstBuffer[0] = (byte)i;
+        }
+        final byte[] secondBuffer = new byte[4];
+        for (int i = 0 ; i < secondBuffer.length; i++) {
+            secondBuffer[0] = (byte)(firstBuffer.length + i);
+        }
+
+        encodePayload(new Packet[]{
+            new Packet<byte[]>(Packet.MESSAGE, firstBuffer),
+            new Packet<byte[]>(Packet.MESSAGE, secondBuffer),
+        }, new EncodeCallback<byte[]>() {
+            @Override
+            public void call(byte[] data) {
+                decodePayload(data, new DecodePayloadCallback() {
+                    @Override
+                    public boolean call(Packet packet, int index, int total) {
+                        boolean isLast = index + 1 == total;
+                        assertThat(packet.type, is(Packet.MESSAGE));
+                        if (!isLast) {
+                            assertThat((byte[])packet.data, is(firstBuffer));
+                        } else {
+                            assertThat((byte[])packet.data, is(secondBuffer));
+                        }
+                        return true;
+                    }
+                });
+            }
+        });
+    }
+
+    @Test
+    public void encodeMixedBinaryAndStringContents() {
+        final byte[] firstBuffer = new byte[123];
+        for (int i = 0 ; i < firstBuffer.length; i++) {
+            firstBuffer[0] = (byte)i;
+        }
+        encodePayload(new Packet[]{
+            new Packet<byte[]>(Packet.MESSAGE, firstBuffer),
+            new Packet<String>(Packet.MESSAGE, "hello"),
+            new Packet<String>(Packet.CLOSE),
+        }, new EncodeCallback<byte[]>() {
+            @Override
+            public void call(byte[] encoded) {
+                decodePayload(encoded, new DecodePayloadCallback() {
+                    @Override
+                    public boolean call(Packet packet, int index, int total) {
+                        if (index == 0) {
+                            assertThat(packet.type, is(Packet.MESSAGE));
+                            assertThat((byte[])packet.data, is(firstBuffer));
+                        } else if (index == 1) {
+                            assertThat(packet.type, is(Packet.MESSAGE));
+                            assertThat((String)packet.data, is("hello"));
+                        } else {
+                            assertThat(packet.type, is(Packet.CLOSE));
+                        }
+                        return true;
+                    }
+                });
+            }
+        });
+    }
 }

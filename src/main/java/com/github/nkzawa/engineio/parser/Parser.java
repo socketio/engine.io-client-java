@@ -95,7 +95,7 @@ public class Parser {
             return;
         }
 
-        final ArrayList<ByteBuffer> results = new ArrayList<ByteBuffer>(packets.length);
+        final ArrayList<byte[]> results = new ArrayList<byte[]>(packets.length);
 
         for (Packet packet : packets) {
             encodePacket(packet, new EncodeCallback() {
@@ -103,31 +103,30 @@ public class Parser {
                 public void call(Object packet) {
                     if (packet instanceof String) {
                         String encodingLength = String.valueOf(((String)packet).getBytes(Charset.forName("UTF-8")).length);
-                        ByteBuffer sizeBuffer = ByteBuffer.allocate(encodingLength.length() + 2);
+                        byte[] sizeBuffer = new byte[encodingLength.length() + 2];
 
-                        sizeBuffer.put((byte)0); // is a string
-                        for (char ch : encodingLength.toCharArray()) {
-                            sizeBuffer.put((byte)Character.getNumericValue(ch));
+                        sizeBuffer[0] = (byte)0; // is a string
+                        for (int i = 0; i < encodingLength.length(); i ++) {
+                            sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
                         }
-                        sizeBuffer.put((byte)255);
-                        results.add(Buffer.concat(new ByteBuffer[] {sizeBuffer,
-                                ByteBuffer.wrap(((String)packet).getBytes(Charset.forName("UTF-8")))}));
+                        sizeBuffer[sizeBuffer.length - 1] = (byte)255;
+                        results.add(Buffer.concat(new byte[][] {sizeBuffer, ((String)packet).getBytes(Charset.forName("UTF-8"))}));
                         return;
                     }
 
-                    String encodingLength = String.valueOf(((ByteBuffer)packet).capacity());
-                    ByteBuffer sizeBuffer = ByteBuffer.allocate(encodingLength.length() + 2);
-                    sizeBuffer.put((byte)1); // is binary
-                    for (char ch : encodingLength.toCharArray()) {
-                        sizeBuffer.put((byte)ch);
+                    String encodingLength = String.valueOf(((byte[])packet).length);
+                    byte[] sizeBuffer = new byte[encodingLength.length() + 2];
+                    sizeBuffer[0] = (byte)1; // is binary
+                    for (int i = 0; i < encodingLength.length(); i ++) {
+                        sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
                     }
-                    sizeBuffer.put((byte)255);
-                    results.add(Buffer.concat(new ByteBuffer[] {sizeBuffer, (ByteBuffer)packet}));
+                    sizeBuffer[sizeBuffer.length - 1] = (byte)255;
+                    results.add(Buffer.concat(new byte[][] {sizeBuffer, (byte[])packet}));
                 }
             });
         }
 
-        callback.call(Buffer.concat(results.toArray(new ByteBuffer[results.size()])).array());
+        callback.call(Buffer.concat(results.toArray(new byte[results.size()][])));
     }
 
     public static void decodePayload(String data, DecodePayloadCallback<String> callback) {
@@ -245,27 +244,26 @@ class Buffer {
 
     private Buffer() {}
 
-    public static ByteBuffer concat(ByteBuffer[] list) {
+    public static byte[] concat(byte[][] list) {
         int length = 0;
-        for (ByteBuffer buf : list) {
-            length += buf.capacity();
+        for (byte[] buf : list) {
+            length += buf.length;
         }
         return concat(list, length);
     }
 
-    public static ByteBuffer concat(ByteBuffer[] list, int length) {
+    public static byte[] concat(byte[][] list, int length) {
         if (list.length == 0) {
-            return ByteBuffer.allocate(0);
+            return new byte[0];
         } else if (list.length == 1) {
             return list[0];
         }
 
         ByteBuffer buffer = ByteBuffer.allocate(length);
-        for (ByteBuffer buf : list) {
-            buf.clear();
+        for (byte[] buf : list) {
             buffer.put(buf);
         }
 
-        return buffer;
+        return buffer.array();
     }
 }
