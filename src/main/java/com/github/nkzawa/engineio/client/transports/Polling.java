@@ -125,7 +125,9 @@ abstract public class Polling extends Transport {
         };
 
         if (data instanceof String) {
-            Parser.decodePayload((String)data, callback);
+            @SuppressWarnings("unchecked")
+            Parser.DecodePayloadCallback<String> _callback = callback;
+            Parser.decodePayload((String)data, _callback);
         } else if (data instanceof byte[]) {
             Parser.decodePayload((byte[])data, callback);
         }

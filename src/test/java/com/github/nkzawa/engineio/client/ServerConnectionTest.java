@@ -314,7 +314,7 @@ public class ServerConnectionTest {
     }
 
     @Test(timeout = TIMEOUT)
-    public void rememberWebsocket() throws URISyntaxException, InterruptedException {
+    public void rememberWebsocket() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
         EventThread.exec(new Runnable() {
@@ -382,7 +382,7 @@ public class ServerConnectionTest {
     }
 
     @Test(timeout = TIMEOUT)
-    public void notRememberWebsocket() throws URISyntaxException, InterruptedException {
+    public void notRememberWebsocket() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
         EventThread.exec(new Runnable() {
@@ -435,4 +435,75 @@ public class ServerConnectionTest {
         semaphore.acquire();
     }
 
+    @Test(timeout = TIMEOUT)
+    public void sendAndReceiveBinaryDataWhenPolling() throws InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
+        final byte[] binaryData = new byte[5];
+        for (int i = 0; i < binaryData.length; i++) {
+            binaryData[i] = (byte)i;
+        }
+
+        Socket.Options opts = new Socket.Options();
+        opts.port = PORT;
+        opts.transports = new String[] {Polling.NAME};
+
+        socket = new Socket(opts) {
+            @Override
+            public void onopen() {
+                socket.send(binaryData);
+            }
+            @Override
+            public void onmessage(byte[] data) {
+                assertThat(data, is(binaryData));
+                socket.close();
+                semaphore.release();
+            }
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
+        };
+        socket.open();
+        semaphore.acquire();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void sendAndReceiveBinaryDataWhenWS() throws InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
+        final byte[] binaryData = new byte[5];
+        for (int i = 0; i < binaryData.length; i++) {
+            binaryData[i] = (byte)i;
+        }
+
+        Socket.Options opts = new Socket.Options();
+        opts.port = PORT;
+
+        socket = new Socket(opts) {
+            @Override
+            public void onopen() {
+                socket.on(Socket.EVENT_UPGRADE, new Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        socket.send(binaryData);
+                    }
+                });
+            }
+            @Override
+            public void onmessage(byte[] data) {
+                assertThat(data, is(binaryData));
+                socket.close();
+                semaphore.release();
+            }
+            @Override
+            public void onmessage(String data) {}
+            @Override
+            public void onclose() {}
+            @Override
+            public void onerror(Exception err) {}
+        };
+        socket.open();
+        semaphore.acquire();
+    }
 }
