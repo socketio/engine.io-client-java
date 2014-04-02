@@ -58,7 +58,26 @@ How to set options:
 opts = new Socket.Options();
 opts.transports = new String[] {WebSocket.NAME};
 
-socket = new Socket("ws://localhost", opts) { ... };
+socket = new Socket(opts) { ... };
+```
+
+Sending and receiving binary data:
+
+```java
+socket = new Socket() {
+  @Override
+  public void onopen() {
+    // send binary data
+    byte[] data = new byte[42];
+    socket.send(data);
+  }
+
+  @Override
+  public void onmessage(byte[] data) {
+    // receive binary data
+  }
+  ...
+};
 ```
 
 ### Extra features only for Java client
@@ -98,7 +117,7 @@ http://nkzawa.github.io/engine.io-client.java/apidocs/
 
 
 ## Features
-This library supports all of the features the JS client does, including events, options and upgraging transport. Android is fully supported.
+This library supports all of the features the JS client does, including events, options and upgrading transport. Android is fully supported.
 
 ## License
 
