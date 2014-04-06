@@ -4,11 +4,10 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.PollingXHR;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
-import com.github.nkzawa.engineio.parser.HandshakeData;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
-import com.google.gson.Gson;
+import org.json.JSONObject;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,8 +27,6 @@ import java.util.logging.Logger;
 public abstract class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
-
-    private static final Gson gson = new Gson();
 
     private enum ReadyState {
         OPENING, OPEN, CLOSING, CLOSED;
@@ -398,7 +395,7 @@ public abstract class Socket extends Emitter {
             this.emit(EVENT_HEARTBEAT);
 
             if (Packet.OPEN.equals(packet.type)) {
-                this.onHandshake(gson.fromJson((String)packet.data, HandshakeData.class));
+                this.onHandshake(new HandshakeData(new JSONObject((String)packet.data)));
             } else if (Packet.PONG.equals(packet.type)) {
                 this.setPing();
             } else if (Packet.ERROR.equals(packet.type)) {
@@ -424,7 +421,7 @@ public abstract class Socket extends Emitter {
         this.emit(EVENT_HANDSHAKE, data);
         this.id = data.sid;
         this.transport.query.put("sid", data.sid);
-        this.upgrades = this.filterUpgrades(data.upgrades);
+        this.upgrades = this.filterUpgrades(Arrays.asList(data.upgrades));
         this.pingInterval = data.pingInterval;
         this.pingTimeout = data.pingTimeout;
         this.onOpen();
@@ -690,7 +687,7 @@ public abstract class Socket extends Emitter {
         return filteredUpgrades;
     }
 
-    public void onmessage(byte[] data) {};
+    public void onmessage(byte[] data) {}
 
     public abstract void onopen();
 

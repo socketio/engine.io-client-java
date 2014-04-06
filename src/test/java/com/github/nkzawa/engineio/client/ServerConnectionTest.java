@@ -3,7 +3,6 @@ package com.github.nkzawa.engineio.client;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
-import com.github.nkzawa.engineio.parser.HandshakeData;
 import com.github.nkzawa.thread.EventThread;
 import org.junit.After;
 import org.junit.Before;
@@ -147,7 +146,7 @@ public class ServerConnectionTest {
 
     @Test(timeout = TIMEOUT)
     public void handshake() throws URISyntaxException, InterruptedException {
-        final BlockingQueue<Object[]> events = new LinkedBlockingQueue<Object[]>();
+        final Semaphore semaphore = new Semaphore(0);
 
         socket = new Socket("ws://localhost:" + PORT) {
             @Override
@@ -162,23 +161,22 @@ public class ServerConnectionTest {
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                events.offer(args);
+                assertThat(args.length, is(1));
+                assertThat(args[0], is(instanceOf(HandshakeData.class)));
+
+                HandshakeData data = (HandshakeData)args[0];
+                assertThat(data.sid, is(notNullValue()));
+                assertThat(data.upgrades, is(notNullValue()));
+                assertThat(data.upgrades, is(not(emptyArray())));
+                assertThat(data.pingTimeout, is(greaterThan((long)0)));
+                assertThat(data.pingInterval, is(greaterThan((long) 0)));
+
+                socket.close();
+                semaphore.release();
             }
         });
         socket.open();
-
-        Object[] args = events.take();
-        assertThat(args.length, is(1));
-        assertThat(args[0], is(instanceOf(HandshakeData.class)));
-
-        HandshakeData data = (HandshakeData)args[0];
-        assertThat(data.sid, is(notNullValue()));
-        assertThat(data.upgrades, is(notNullValue()));
-        assertThat(data.upgrades, is(not(empty())));
-        assertThat(data.pingTimeout, is(greaterThan((long)0)));
-        assertThat(data.pingInterval, is(greaterThan((long) 0)));
-
-        socket.close();
+        semaphore.acquire();
     }
 
     @Test(timeout = TIMEOUT)
@@ -325,20 +323,13 @@ public class ServerConnectionTest {
 
                 final Socket socket = new Socket(opts) {
                     @Override
-                    public void onopen() {
-                    }
-
+                    public void onopen() {}
                     @Override
-                    public void onmessage(String data) {
-                    }
-
+                    public void onmessage(String data) {}
                     @Override
-                    public void onclose() {
-                    }
-
+                    public void onclose() {}
                     @Override
-                    public void onerror(Exception err) {
-                    }
+                    public void onerror(Exception err) {}
                 };
 
                 socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
@@ -353,20 +344,13 @@ public class ServerConnectionTest {
 
                             final Socket socket2 = new Socket(opts) {
                                 @Override
-                                public void onopen() {
-                                }
-
+                                public void onopen() {}
                                 @Override
-                                public void onmessage(String data) {
-                                }
-
+                                public void onmessage(String data) {}
                                 @Override
-                                public void onclose() {
-                                }
-
+                                public void onclose() {}
                                 @Override
-                                public void onerror(Exception err) {
-                                }
+                                public void onerror(Exception err) {}
                             };
                             socket2.open();
                             assertThat(socket2.transport.name, is(WebSocket.NAME));
