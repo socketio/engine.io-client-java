@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "engine.io": "1.0.5"
+    "engine.io": "1.0.5",
+    "endine.io-parser": "nkzawa/engine.io-parser#patch-0"
   }
 }
