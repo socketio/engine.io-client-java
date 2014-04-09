@@ -147,11 +147,11 @@ public abstract class Socket extends Emitter {
      * @throws URISyntaxException
      */
     public Socket(String uri, Options opts) throws URISyntaxException {
-        this(new URI(uri), opts);
+        this(uri == null ? null : new URI(uri), opts);
     }
 
     public Socket(URI uri, Options opts) {
-        this(Options.fromURI(uri, opts));
+        this(uri == null ? opts : Options.fromURI(uri, opts));
     }
 
     public Socket(Options opts) {
