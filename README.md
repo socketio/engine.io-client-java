@@ -13,7 +13,7 @@ The latest artifact is available on Maven Central. Add the following dependency 
   <dependency>
     <groupId>com.github.nkzawa</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>0.1.3</version>
+    <version>0.2.0</version>
   </dependency>
 </dependencies>
 ```
@@ -22,29 +22,26 @@ The latest artifact is available on Maven Central. Add the following dependency 
 Engine.IO-client.java has the similar api with the JS client. You can use `Socket` to connect:
 
 ```java
-socket = new Socket("ws://localhost") {
+socket = new Socket("ws://localhost");
+socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
   @Override
-  public void onopen() {
+  public void call(Object... args) {
     socket.send("hi");
     socket.close();
   }
-
-  @Override
-  public void onmessage(String data) {}
-
-  @Override
-  public void onclose() {}
-
-  @Override
-  public void onerror(Exception err) {}
-};
+});
 socket.open();
 ```
 
-You can receive events as follows:
+You can listen events as follows:
 
 ```java
-socket.on(Socket.EVENT_ERROR, new Emitter.Listener() {
+socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
+  @Override
+  public void call(Object... args) {
+    String data = (String)args[0];
+  }
+}).on(Socket.EVENT_ERROR, new Emitter.Listener() {
   @Override
   public void call(Object... args) {
     Exception err = (Exception)args[0];
@@ -58,26 +55,27 @@ How to set options:
 opts = new Socket.Options();
 opts.transports = new String[] {WebSocket.NAME};
 
-socket = new Socket(opts) { ... };
+socket = new Socket(opts);
 ```
 
 Sending and receiving binary data:
 
 ```java
-socket = new Socket() {
+socket = new Socket();
+socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
   @Override
-  public void onopen() {
+  public void call(Object... args) {
     // send binary data
     byte[] data = new byte[42];
     socket.send(data);
   }
-
+}).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
   @Override
-  public void onmessage(byte[] data) {
+  public void call(Object... args) {
     // receive binary data
+    byte[] data = (byte[])args[0];
   }
-  ...
-};
+});
 ```
 
 ### Extra features only for Java client
