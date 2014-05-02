@@ -2,9 +2,9 @@ package com.github.nkzawa.engineio.client.transports;
 
 
 import com.github.nkzawa.engineio.client.Transport;
-import com.github.nkzawa.engineio.client.Util;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
+import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
 
 import java.util.Date;
@@ -197,7 +197,7 @@ abstract public class Polling extends Transport {
             query.put(this.timestampParam, String.valueOf(new Date().getTime()));
         }
 
-        String _query = Util.qs(query);
+        String _query = ParseQS.encode(query);
 
         if (this.port > 0 && (("https".equals(schema) && this.port != 443)
                 || ("http".equals(schema) && this.port != 80))) {

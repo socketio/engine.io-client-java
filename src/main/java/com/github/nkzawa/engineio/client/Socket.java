@@ -6,6 +6,7 @@ import com.github.nkzawa.engineio.client.transports.PollingXHR;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
+import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
 import org.json.JSONObject;
 
@@ -167,7 +168,7 @@ public abstract class Socket extends Emitter {
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
         this.query = opts.query != null ?
-                Util.qsParse(opts.query) : new HashMap<String, String>();
+                ParseQS.decode(opts.query) : new HashMap<String, String>();
         this.upgrade = opts.upgrade;
         this.path = (opts.path != null ? opts.path : "/engine.io").replaceAll("/$", "") + "/";
         this.timestampParam = opts.timestampParam != null ? opts.timestampParam : "t";
