@@ -24,16 +24,7 @@ public class SocketTest {
     public void filterUpgrades() {
         Socket.Options opts = new Socket.Options();
         opts.transports = new String[] {Polling.NAME};
-        Socket socket = new Socket(opts) {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        Socket socket = new Socket(opts);
         List<String> upgrades = new ArrayList<String>() {{
             add(Polling.NAME);
             add(WebSocket.NAME);
@@ -51,16 +42,7 @@ public class SocketTest {
     @Test
     public void socketClosing() throws URISyntaxException, InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
-        Socket socket = new Socket("ws://0.0.0.0:8080") {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        Socket socket = new Socket("ws://0.0.0.0:8080");
         final boolean[] closed = {false};
 
         socket.once(Socket.EVENT_ERROR, new Emitter.Listener() {

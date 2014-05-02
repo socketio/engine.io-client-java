@@ -93,23 +93,18 @@ public class ServerConnectionTest {
     public void openAndClose() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 
-        socket = new Socket("ws://localhost:" + PORT) {
+        socket = new Socket("ws://localhost:" + PORT);
+        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
-            public void onopen() {
+            public void call(Object... args) {
                 events.offer("onopen");
             }
-
+        }).on(Socket.EVENT_CLOSE, new Emitter.Listener() {
             @Override
-            public void onmessage(String data) {}
-
-            @Override
-            public void onclose() {
+            public void call(Object... args) {
                 events.offer("onclose");
             }
-
-            @Override
-            public void onerror(Exception err) {}
-        };
+        });
         socket.open();
 
         assertThat(events.take(), is("onopen"));
@@ -121,22 +116,18 @@ public class ServerConnectionTest {
     public void messages() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 
-        socket = new Socket("ws://localhost:" + PORT) {
+        socket = new Socket("ws://localhost:" + PORT);
+        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
-            public void onopen() {
+            public void call(Object... args) {
                 socket.send("hi");
             }
-
+        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
             @Override
-            public void onmessage(String data) {
-                events.offer(data);
+            public void call(Object... args) {
+                events.offer((String)args[0]);
             }
-
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        });
         socket.open();
 
         assertThat(events.take(), is("hello client"));
@@ -148,16 +139,7 @@ public class ServerConnectionTest {
     public void handshake() throws URISyntaxException, InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        socket = new Socket("ws://localhost:" + PORT) {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        socket = new Socket("ws://localhost:" + PORT);
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -183,16 +165,7 @@ public class ServerConnectionTest {
     public void upgrade() throws URISyntaxException, InterruptedException {
         final BlockingQueue<Object[]> events = new LinkedBlockingQueue<Object[]>();
 
-        socket = new Socket("ws://localhost:" + PORT) {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        socket = new Socket("ws://localhost:" + PORT);
         socket.on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -229,16 +202,7 @@ public class ServerConnectionTest {
         Socket.Options opts = new Socket.Options();
         opts.transports = new String[] {Polling.NAME};
 
-        socket = new Socket("ws://localhost:" + PORT, opts) {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        socket = new Socket("ws://localhost:" + PORT, opts);
         socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -274,16 +238,7 @@ public class ServerConnectionTest {
         Socket.Options opts = new Socket.Options();
         opts.transports = new String[] {WebSocket.NAME};
 
-        socket = new Socket("ws://localhost:" + PORT, opts) {
-            @Override
-            public void onopen() {}
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        socket = new Socket("ws://localhost:" + PORT, opts);
         socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -321,16 +276,7 @@ public class ServerConnectionTest {
                 Socket.Options opts = new Socket.Options();
                 opts.port = PORT;
 
-                final Socket socket = new Socket(opts) {
-                    @Override
-                    public void onopen() {}
-                    @Override
-                    public void onmessage(String data) {}
-                    @Override
-                    public void onclose() {}
-                    @Override
-                    public void onerror(Exception err) {}
-                };
+                final Socket socket = new Socket(opts);
 
                 socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
                     @Override
@@ -342,16 +288,7 @@ public class ServerConnectionTest {
                             opts.port = PORT;
                             opts.rememberUpgrade = true;
 
-                            final Socket socket2 = new Socket(opts) {
-                                @Override
-                                public void onopen() {}
-                                @Override
-                                public void onmessage(String data) {}
-                                @Override
-                                public void onclose() {}
-                                @Override
-                                public void onerror(Exception err) {}
-                            };
+                            final Socket socket2 = new Socket(opts);
                             socket2.open();
                             assertThat(socket2.transport.name, is(WebSocket.NAME));
                         }
@@ -375,16 +312,7 @@ public class ServerConnectionTest {
                 Socket.Options opts = new Socket.Options();
                 opts.port = PORT;
 
-                final Socket socket = new Socket(opts) {
-                    @Override
-                    public void onopen() {}
-                    @Override
-                    public void onmessage(String data) {}
-                    @Override
-                    public void onclose() {}
-                    @Override
-                    public void onerror(Exception err) {}
-                };
+                final Socket socket = new Socket(opts);
 
                 socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
                     @Override
@@ -396,16 +324,7 @@ public class ServerConnectionTest {
                             opts.port = PORT;
                             opts.rememberUpgrade = false;
 
-                            final Socket socket2 = new Socket(opts) {
-                                @Override
-                                public void onopen() {}
-                                @Override
-                                public void onmessage(String data) {}
-                                @Override
-                                public void onclose() {}
-                                @Override
-                                public void onerror(Exception err) {}
-                            };
+                            final Socket socket2 = new Socket(opts);
                             socket2.open();
                             assertThat(socket2.transport.name, is(not(WebSocket.NAME)));
                         }
@@ -431,24 +350,22 @@ public class ServerConnectionTest {
         opts.port = PORT;
         opts.transports = new String[] {Polling.NAME};
 
-        socket = new Socket(opts) {
+        socket = new Socket(opts);
+        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
-            public void onopen() {
+            public void call(Object... args) {
                 socket.send(binaryData);
             }
+        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
             @Override
-            public void onmessage(byte[] data) {
-                assertThat(data, is(binaryData));
-                socket.close();
-                semaphore.release();
+            public void call(Object... args) {
+                if (args[0] instanceof byte[]) {
+                    assertThat((byte[])args[0], is(binaryData));
+                    socket.close();
+                    semaphore.release();
+                }
             }
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        });
         socket.open();
         semaphore.acquire();
     }
@@ -464,29 +381,27 @@ public class ServerConnectionTest {
         Socket.Options opts = new Socket.Options();
         opts.port = PORT;
 
-        socket = new Socket(opts) {
+        socket = new Socket(opts);
+        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
-            public void onopen() {
-                socket.on(Socket.EVENT_UPGRADE, new Listener() {
+            public void call(Object... args) {
+                socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
                         socket.send(binaryData);
                     }
                 });
             }
+        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
             @Override
-            public void onmessage(byte[] data) {
-                assertThat(data, is(binaryData));
-                socket.close();
-                semaphore.release();
+            public void call(Object... args) {
+                if (args[0] instanceof byte[]) {
+                    assertThat((byte[])args[0], is(binaryData));
+                    socket.close();
+                    semaphore.release();
+                }
             }
-            @Override
-            public void onmessage(String data) {}
-            @Override
-            public void onclose() {}
-            @Override
-            public void onerror(Exception err) {}
-        };
+        });
         socket.open();
         semaphore.acquire();
     }

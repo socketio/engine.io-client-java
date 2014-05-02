@@ -2,6 +2,9 @@ package com.github.nkzawa.engineio.client;
 
 public class EngineIOException extends Exception {
 
+    public String transport;
+    public Object code;
+
     public EngineIOException() {
         super();
     }

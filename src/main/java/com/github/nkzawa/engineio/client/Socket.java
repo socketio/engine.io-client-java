@@ -13,10 +13,7 @@ import org.json.JSONObject;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 
@@ -25,7 +22,7 @@ import java.util.logging.Logger;
  *
  * @see <a href="https://github.com/LearnBoost/engine.io-client">https://github.com/LearnBoost/engine.io-client</a>
  */
-public abstract class Socket extends Emitter {
+public class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
 
@@ -274,26 +271,9 @@ public abstract class Socket extends Emitter {
 
         Socket.priorWebsocketSuccess = false;
 
-        final Listener onerror = new Listener() {
-            @Override
-            public void call(Object... args) {
-                if (failed[0]) return;
+        final Runnable[] cleanup = new Runnable[1];
 
-                failed[0] = true;
-
-                // TODO: handle error
-                Exception err = args.length > 0 ? (Exception)args[0] : null;
-                EngineIOException error = new EngineIOException("probe error", err);
-                //error.transport = transport[0].name;
-
-                transport[0].close();
-                transport[0] = null;
-                logger.fine(String.format("probing transport '%s' failed because of error: %s", name, err));
-                self.emit(EVENT_UPGRADE_ERROR, error);
-            }
-        };
-
-        transport[0].once(Transport.EVENT_OPEN, new Listener() {
+        final Listener onTransportOpen = new Listener() {
             @Override
             public void call(Object... args) {
                 if (failed[0]) return;
@@ -305,6 +285,7 @@ public abstract class Socket extends Emitter {
                     @Override
                     public void call(Object... args) {
                         if (failed[0]) return;
+
                         Packet msg = (Packet)args[0];
                         if (Packet.PONG.equals(msg.type) && "probe".equals(msg.data)) {
                             logger.fine(String.format("probe transport '%s' pong", name));
@@ -317,12 +298,14 @@ public abstract class Socket extends Emitter {
                                 @Override
                                 public void run() {
                                     if (failed[0]) return;
-                                    if (self.readyState == ReadyState.CLOSED || self.readyState == ReadyState.CLOSING) {
+                                    if (ReadyState.CLOSED == self.readyState || ReadyState.CLOSING == self.readyState) {
                                         return;
                                     }
 
                                     logger.fine("changing transport and sending upgrade packet");
-                                    transport[0].off(Transport.EVENT_ERROR, onerror);
+
+                                    cleanup[0].run();
+
                                     self.setTransport(transport[0]);
                                     Packet packet = new Packet(Packet.UPGRADE);
                                     transport[0].send(new Packet[]{packet});
@@ -341,33 +324,89 @@ public abstract class Socket extends Emitter {
                     }
                 });
             }
-        });
+        };
 
-        transport[0].once(Transport.EVENT_ERROR, onerror);
-
-        this.once(EVENT_CLOSE, new Listener() {
+        final Listener freezeTransport = new Listener() {
             @Override
             public void call(Object... args) {
-                if (transport[0] != null) {
-                    logger.fine("socket closed prematurely - aborting probe");
-                    failed[0] = true;
-                    transport[0].close();
-                    transport[0] = null;
-                }
-            }
-        });
+                if (failed[0]) return;
 
-        this.once(EVENT_UPGRADING, new Listener() {
+                failed[0] = true;
+
+                cleanup[0].run();
+
+                transport[0].close();
+                transport[0] = null;
+            }
+        };
+
+        // Handle any error that happens while probing
+        final Listener onerror = new Listener() {
+            @Override
+            public void call(Object... args) {
+                Object err = args[0];
+                EngineIOException error;
+                if (err instanceof Exception) {
+                    error = new EngineIOException("probe error", (Exception)err);
+                } else if (err instanceof String) {
+                    error = new EngineIOException("probe error: " + (String)err);
+                } else {
+                    error = new EngineIOException("probe error");
+                }
+                error.transport = transport[0].name;
+
+                freezeTransport.call();
+
+                logger.fine(String.format("probe transport \"%s\" failed because of error: %s", name, err));
+
+                self.emit(EVENT_UPGRADE_ERROR, error);
+            }
+        };
+
+        final Listener onTransportClose = new Listener() {
+            @Override
+            public void call(Object... args) {
+                onerror.call("transport closed");
+            }
+        };
+
+        // When the socket is closed while we're probing
+        final Listener onclose = new Listener() {
+            @Override
+            public void call(Object... args) {
+                onerror.call("socket closed");
+            }
+        };
+
+        // When the socket is upgraded while we're probing
+        final Listener onupgrade = new Listener() {
             @Override
             public void call(Object... args) {
                 Transport to = (Transport)args[0];
                 if (transport[0] != null && !to.name.equals(transport[0].name)) {
                     logger.fine(String.format("'%s' works - aborting '%s'", to.name, transport[0].name));
-                    transport[0].close();
-                    transport[0] = null;
+                    freezeTransport.call();
                 }
             }
-        });
+        };
+
+        cleanup[0] = new Runnable() {
+            @Override
+            public void run() {
+                transport[0].off(Transport.EVENT_OPEN, onTransportOpen);
+                transport[0].off(Transport.EVENT_ERROR, onerror);
+                transport[0].off(Transport.EVENT_CLOSE, onTransportClose);
+                self.off(EVENT_CLOSE, onclose);
+                self.off(EVENT_UPGRADING, onupgrade);
+            }
+        };
+
+        transport[0].once(Transport.EVENT_OPEN, onTransportOpen);
+        transport[0].once(Transport.EVENT_ERROR, onerror);
+        transport[0].once(Transport.EVENT_CLOSE, onTransportClose);
+
+        this.once(EVENT_CLOSE, onclose);
+        this.once(EVENT_UPGRADING, onupgrade);
 
         transport[0].open();
     }
@@ -377,7 +416,6 @@ public abstract class Socket extends Emitter {
         this.readyState = ReadyState.OPEN;
         Socket.priorWebsocketSuccess = WebSocket.NAME.equals(this.transport.name);
         this.emit(EVENT_OPEN);
-        this.onopen();
         this.flush();
 
         if (this.readyState == ReadyState.OPEN && this.upgrade && this.transport instanceof Polling) {
@@ -400,18 +438,12 @@ public abstract class Socket extends Emitter {
             } else if (Packet.PONG.equals(packet.type)) {
                 this.setPing();
             } else if (Packet.ERROR.equals(packet.type)) {
-                // TODO: handle error
                 EngineIOException err = new EngineIOException("server error");
-                //err.code = packet.data;
+                err.code = packet.data;
                 this.emit(EVENT_ERROR, err);
             } else if (Packet.MESSAGE.equals(packet.type)) {
                 this.emit(EVENT_DATA, packet.data);
                 this.emit(EVENT_MESSAGE, packet.data);
-                if (packet.data instanceof String) {
-                    this.onmessage((String)packet.data);
-                } else if (packet.data instanceof byte[]) {
-                    this.onmessage((byte[])packet.data);
-                }
             }
         } else {
             logger.fine(String.format("packet received with socket readyState '%s'", this.readyState));
@@ -630,7 +662,6 @@ public abstract class Socket extends Emitter {
         logger.fine(String.format("socket error %s", err));
         Socket.priorWebsocketSuccess = false;
         this.emit(EVENT_ERROR, err);
-        this.onerror(err);
         this.onClose("transport error", err);
     }
 
@@ -660,6 +691,9 @@ public abstract class Socket extends Emitter {
                 }
             });
 
+            // stop event from firing again for transport
+            this.transport.off(EVENT_CLOSE);
+
             // ensure transport won't stay open
             this.transport.close();
 
@@ -674,7 +708,6 @@ public abstract class Socket extends Emitter {
 
             // emit close events
             this.emit(EVENT_CLOSE, reason, desc);
-            this.onclose();
         }
     }
 
@@ -687,16 +720,6 @@ public abstract class Socket extends Emitter {
         }
         return filteredUpgrades;
     }
-
-    public void onmessage(byte[] data) {}
-
-    public abstract void onopen();
-
-    public abstract void onmessage(String data);
-
-    public abstract void onclose();
-
-    public abstract void onerror(Exception err);
 
     public static class Options extends Transport.Options {
 

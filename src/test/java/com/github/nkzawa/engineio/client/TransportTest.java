@@ -8,6 +8,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.HashMap;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -27,7 +28,7 @@ public class TransportTest {
         }};
         opt.timestampRequests = false;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri(), is("http://localhost/engine.io?sid=test"));
+        assertThat(polling.uri(), containsString("http://localhost/engine.io?sid=test"));
     }
 
     @Test
@@ -42,7 +43,7 @@ public class TransportTest {
         opt.port = 80;
         opt.timestampRequests = false;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri(), is("http://localhost/engine.io?sid=test"));
+        assertThat(polling.uri(), containsString("http://localhost/engine.io?sid=test"));
     }
 
     @Test
@@ -57,7 +58,7 @@ public class TransportTest {
         opt.port = 3000;
         opt.timestampRequests = false;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri(), is("http://localhost:3000/engine.io?sid=test"));
+        assertThat(polling.uri(), containsString("http://localhost:3000/engine.io?sid=test"));
     }
 
     @Test
@@ -72,7 +73,7 @@ public class TransportTest {
         opt.port = 443;
         opt.timestampRequests = false;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri(), is("https://localhost/engine.io?sid=test"));
+        assertThat(polling.uri(), containsString("https://localhost/engine.io?sid=test"));
     }
 
     @Test
@@ -83,7 +84,7 @@ public class TransportTest {
         opt.timestampParam = "t";
         opt.timestampRequests = true;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri().matches("http://localhost/engine.io\\?t=[0-9]+"), is(true));
+        assertThat(polling.uri().matches("http://localhost/engine.io\\?(j=[0-9]+&)?t=[0-9]+-[0-9]+"), is(true));
     }
 
     @Test

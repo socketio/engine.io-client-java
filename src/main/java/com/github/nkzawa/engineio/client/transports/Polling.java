@@ -194,7 +194,7 @@ abstract public class Polling extends Transport {
         String port = "";
 
         if (this.timestampRequests) {
-            query.put(this.timestampParam, String.valueOf(new Date().getTime()));
+            query.put(this.timestampParam, String.valueOf(new Date().getTime()) + "-" + Transport.timestamps++);
         }
 
         String _query = ParseQS.encode(query);
