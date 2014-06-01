@@ -5,3 +5,4 @@ com.github.nkzawa.engineio.parser
 com.github.nkzawa.global
 com.github.nkzawa.parseqs
 com.github.nkzawa.thread
+com.github.nkzawa.utf8
