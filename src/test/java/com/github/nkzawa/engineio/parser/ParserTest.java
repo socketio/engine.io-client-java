@@ -105,6 +105,30 @@ public class ParserTest {
     }
 
     @Test
+    public void encodeUTF8SpecialCharsMessagePacket() {
+        encodePacket(new Packet<String>(Packet.MESSAGE, "utf8 — string"), new EncodeCallback<String>() {
+            @Override
+            public void call(String data) {
+                Packet<String> p = decodePacket(data);
+                assertThat(p.type, is(Packet.MESSAGE));
+                assertThat(p.data, is("utf8 — string"));
+            }
+        });
+    }
+
+    @Test
+    public void encodeMessagePacketCoercingToString() {
+        encodePacket(new Packet<Integer>(Packet.MESSAGE, 1), new EncodeCallback<String>() {
+            @Override
+            public void call(String data) {
+                Packet<String> p = decodePacket(data);
+                assertThat(p.type, is(Packet.MESSAGE));
+                assertThat(p.data, is("1"));
+            }
+        });
+    }
+
+    @Test
     public void encodeUpgradePacket() {
         encodePacket(new Packet<String>(Packet.UPGRADE), new EncodeCallback<String>() {
             @Override

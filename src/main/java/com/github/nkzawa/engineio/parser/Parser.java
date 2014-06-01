@@ -1,8 +1,9 @@
 package com.github.nkzawa.engineio.parser;
 
 
+import com.github.nkzawa.utf8.UTF8;
+
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +48,7 @@ public class Parser {
         String encoded = String.valueOf(packets.get(packet.type));
 
         if (null != packet.data) {
-            encoded += packet.data;
+            encoded += UTF8.encode(String.valueOf(packet.data));
         }
 
         @SuppressWarnings("unchecked")
@@ -70,6 +71,7 @@ public class Parser {
         } catch (IndexOutOfBoundsException e) {
             type = -1;
         }
+        data = UTF8.decode(data);
 
         if (type < 0 || type >= packetslist.size()) {
             return err;
@@ -102,7 +104,7 @@ public class Parser {
                 @Override
                 public void call(Object packet) {
                     if (packet instanceof String) {
-                        String encodingLength = String.valueOf(((String)packet).getBytes(Charset.forName("UTF-8")).length);
+                        String encodingLength = String.valueOf(((String) packet).length());
                         byte[] sizeBuffer = new byte[encodingLength.length() + 2];
 
                         sizeBuffer[0] = (byte)0; // is a string
@@ -110,7 +112,7 @@ public class Parser {
                             sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
                         }
                         sizeBuffer[sizeBuffer.length - 1] = (byte)255;
-                        results.add(Buffer.concat(new byte[][] {sizeBuffer, ((String)packet).getBytes(Charset.forName("UTF-8"))}));
+                        results.add(Buffer.concat(new byte[][] {sizeBuffer, stringToByteArray((String)packet)}));
                         return;
                     }
 
@@ -202,7 +204,7 @@ public class Parser {
             byte[] msg = new byte[bufferTail.remaining()];
             bufferTail.get(msg);
             if (isString) {
-                buffers.add(new String(msg, Charset.forName("UTF-8")));
+                buffers.add(byteArrayToString(msg));
             } else {
                 buffers.add(msg);
             }
@@ -226,6 +228,22 @@ public class Parser {
         }
     }
 
+    public static String byteArrayToString(byte[] bytes) {
+        StringBuilder builder = new StringBuilder();
+        for (byte b : bytes) {
+            builder.appendCodePoint(b & 0xFF);
+        }
+        return builder.toString();
+    }
+
+    public static byte[] stringToByteArray(String string) {
+        int len = string.length();
+        byte[] bytes = new byte[len];
+        for (int i = 0; i < len; i++) {
+            bytes[i] = (byte)Character.codePointAt(string, i);
+        }
+        return bytes;
+    }
 
     public static interface EncodeCallback<T> {
 
