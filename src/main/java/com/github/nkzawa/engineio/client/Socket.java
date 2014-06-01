@@ -458,6 +458,8 @@ public class Socket extends Emitter {
         this.pingInterval = data.pingInterval;
         this.pingTimeout = data.pingTimeout;
         this.onOpen();
+        // In case open handler closes socket
+        if (ReadyState.CLOSED == this.readyState) return;
         this.setPing();
 
         this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);

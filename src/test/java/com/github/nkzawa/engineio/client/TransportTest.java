@@ -20,7 +20,7 @@ public class TransportTest {
     @Test
     public void uri() {
         Transport.Options opt = new Transport.Options();
-        opt.path ="/engine.io";
+        opt.path = "/engine.io";
         opt.hostname = "localhost";
         opt.secure = false;
         opt.query = new HashMap<String, String>() {{
@@ -104,7 +104,7 @@ public class TransportTest {
     @Test
     public void wssUri() {
         Transport.Options opt = new Transport.Options();
-        opt.path ="/engine.io";
+        opt.path = "/engine.io";
         opt.hostname = "test";
         opt.secure = true;
         opt.timestampRequests = false;
@@ -115,7 +115,7 @@ public class TransportTest {
     @Test
     public void wsTimestampedUri() {
         Transport.Options opt = new Transport.Options();
-        opt.path ="/engine.io";
+        opt.path = "/engine.io";
         opt.hostname = "localhost";
         opt.timestampParam = "woot";
         opt.timestampRequests = true;

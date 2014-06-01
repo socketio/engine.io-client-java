@@ -4,18 +4,15 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import com.github.nkzawa.thread.EventThread;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -25,69 +22,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 @RunWith(JUnit4.class)
-public class ServerConnectionTest {
+public class ServerConnectionTest extends Connection {
 
-    final static int TIMEOUT = 3000;
-    final static int PORT = 3000;
-
-    private Process serverProcess;
-    private ExecutorService serverService;
-    private Future serverOutout;
-    private Future serverError;
     private Socket socket;
-
-    @Before
-    public void startServer() throws IOException, InterruptedException {
-        System.out.println("Starting server ...");
-
-        final CountDownLatch latch = new CountDownLatch(1);
-        serverProcess = Runtime.getRuntime().exec(
-                "node src/test/resources/index.js " + PORT, new String[] {"DEBUG=engine*"});
-        serverService = Executors.newCachedThreadPool();
-        serverOutout = serverService.submit(new Runnable() {
-            @Override
-            public void run() {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(serverProcess.getInputStream()));
-                String line;
-                try {
-                    line = reader.readLine();
-                    latch.countDown();
-                    do {
-                        System.out.println("SERVER OUT: " + line);
-                    } while ((line = reader.readLine()) != null);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        serverError = serverService.submit(new Runnable() {
-            @Override
-            public void run() {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(serverProcess.getErrorStream()));
-                String line;
-                try {
-                    while ((line = reader.readLine()) != null) {
-                        System.err.println("SERVER ERR: " + line);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        latch.await(3000, TimeUnit.MILLISECONDS);
-    }
-
-    @After
-    public void stopServer() throws InterruptedException {
-        System.out.println("Stopping server ...");
-        serverProcess.destroy();
-        serverOutout.cancel(true);
-        serverError.cancel(true);
-        serverService.shutdown();
-        serverService.awaitTermination(3000, TimeUnit.MILLISECONDS);
-    }
 
     @Test(timeout = TIMEOUT)
     public void openAndClose() throws URISyntaxException, InterruptedException {
@@ -120,7 +57,7 @@ public class ServerConnectionTest {
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                socket.send("hi");
+                socket.send("hello");
             }
         }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
             @Override
@@ -130,8 +67,8 @@ public class ServerConnectionTest {
         });
         socket.open();
 
-        assertThat(events.take(), is("hello client"));
         assertThat(events.take(), is("hi"));
+        assertThat(events.take(), is("hello"));
         socket.close();
     }
 
@@ -335,74 +272,6 @@ public class ServerConnectionTest {
                 assertThat(socket.transport.name, is(Polling.NAME));
             }
         });
-        semaphore.acquire();
-    }
-
-    @Test(timeout = TIMEOUT)
-    public void sendAndReceiveBinaryDataWhenPolling() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
-        final byte[] binaryData = new byte[5];
-        for (int i = 0; i < binaryData.length; i++) {
-            binaryData[i] = (byte)i;
-        }
-
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-        opts.transports = new String[] {Polling.NAME};
-
-        socket = new Socket(opts);
-        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                socket.send(binaryData);
-            }
-        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                if (args[0] instanceof byte[]) {
-                    assertThat((byte[])args[0], is(binaryData));
-                    socket.close();
-                    semaphore.release();
-                }
-            }
-        });
-        socket.open();
-        semaphore.acquire();
-    }
-
-    @Test(timeout = TIMEOUT)
-    public void sendAndReceiveBinaryDataWhenWS() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
-        final byte[] binaryData = new byte[5];
-        for (int i = 0; i < binaryData.length; i++) {
-            binaryData[i] = (byte)i;
-        }
-
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-
-        socket = new Socket(opts);
-        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
-                    @Override
-                    public void call(Object... args) {
-                        socket.send(binaryData);
-                    }
-                });
-            }
-        }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                if (args[0] instanceof byte[]) {
-                    assertThat((byte[])args[0], is(binaryData));
-                    socket.close();
-                    semaphore.release();
-                }
-            }
-        });
-        socket.open();
         semaphore.acquire();
     }
 }

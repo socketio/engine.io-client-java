@@ -1,12 +1,14 @@
+var http = require('http').Server();
 var engine = require('engine.io');
+var server = engine.attach(http, {pingInterval: 500});
 
 var port = parseInt(process.argv[2], 10) || 3000
-var server = engine.listen(port, function() {
+http.listen(port, function() {
   console.log('Engine.IO server listening on port', port);
 });
 
 server.on('connection', function(socket) {
-  socket.send('hello client');
+  socket.send('hi');
 
   socket.on('message', function(message) {
     socket.send(message);
