@@ -8,12 +8,15 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
-import org.json.JSONObject;
+import org.json.JSONException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -434,7 +437,11 @@ public class Socket extends Emitter {
             this.emit(EVENT_HEARTBEAT);
 
             if (Packet.OPEN.equals(packet.type)) {
-                this.onHandshake(new HandshakeData(new JSONObject((String)packet.data)));
+                try {
+                    this.onHandshake(new HandshakeData((String)packet.data));
+                } catch (JSONException e) {
+                    this.emit(EVENT_ERROR, new EngineIOException(e));
+                }
             } else if (Packet.PONG.equals(packet.type)) {
                 this.setPing();
             } else if (Packet.ERROR.equals(packet.type)) {
