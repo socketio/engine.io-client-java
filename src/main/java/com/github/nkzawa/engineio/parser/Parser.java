@@ -11,6 +11,8 @@ import java.util.Map;
 
 public class Parser {
 
+    private static final int MAX_INT_CHAR_LENGTH = String.valueOf(Integer.MAX_VALUE).length();
+
     public static final int protocol = 3;
 
     private static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
@@ -189,10 +191,22 @@ public class Parser {
         while (bufferTail.capacity() > 0) {
             StringBuilder strLen = new StringBuilder();
             boolean isString = (bufferTail.get(0) & 0xFF) == 0;
+            boolean numberTooLong = false;
             for (int i = 1; ; i++) {
                 int b = bufferTail.get(i) & 0xFF;
                 if (b == 255) break;
+                // supports only integer
+                if (strLen.length() > MAX_INT_CHAR_LENGTH) {
+                    numberTooLong = true;
+                    break;
+                }
                 strLen.append(b);
+            }
+            if (numberTooLong) {
+                @SuppressWarnings("unchecked")
+                DecodePayloadCallback<String> _callback = callback;
+                _callback.call(err, 0, 1);
+                return;
             }
             bufferTail.position(strLen.length() + 1);
             bufferTail = bufferTail.slice();
