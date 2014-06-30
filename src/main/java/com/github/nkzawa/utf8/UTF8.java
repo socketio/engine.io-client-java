@@ -27,7 +27,7 @@ public class UTF8 {
         return byteString.toString();
     }
 
-    public static String decode(String byteString) {
+    public static String decode(String byteString) throws UTF8Exception {
         byteArray = uc2decode(byteString);
         byteCount = byteArray.length;
         byteIndex = 0;
@@ -74,7 +74,7 @@ public class UTF8 {
         return Character.toChars(((codePoint >> shift) & 0x3F) | 0x80);
     }
 
-    private static int decodeSymbol() {
+    private static int decodeSymbol() throws UTF8Exception {
         int byte1;
         int byte2;
         int byte3;
@@ -82,7 +82,7 @@ public class UTF8 {
         int codePoint;
 
         if (byteIndex > byteCount) {
-            throw new RuntimeException("Invalid byte index");
+            throw new UTF8Exception("Invalid byte index");
         }
 
         if (byteIndex == byteCount) {
@@ -102,7 +102,7 @@ public class UTF8 {
             if (codePoint >= 0x80) {
                 return codePoint;
             } else {
-                throw new RuntimeException("Invalid continuation byte");
+                throw new UTF8Exception("Invalid continuation byte");
             }
         }
 
@@ -113,7 +113,7 @@ public class UTF8 {
             if (codePoint >= 0x0800) {
                 return codePoint;
             } else {
-                throw new RuntimeException("Invalid continuation byte");
+                throw new UTF8Exception("Invalid continuation byte");
             }
         }
 
@@ -127,12 +127,12 @@ public class UTF8 {
             }
         }
 
-        throw new RuntimeException("Invalid continuation byte");
+        throw new UTF8Exception("Invalid continuation byte");
     }
 
-    private static int readContinuationByte() {
+    private static int readContinuationByte() throws UTF8Exception {
         if (byteIndex >= byteCount) {
-            throw new RuntimeException("Invalid byte index");
+            throw new UTF8Exception("Invalid byte index");
         }
 
         int continuationByte = byteArray[byteIndex] & 0xFF;
@@ -142,7 +142,7 @@ public class UTF8 {
             return continuationByte & 0x3F;
         }
 
-        throw new RuntimeException("Invalid continuation byte");
+        throw new UTF8Exception("Invalid continuation byte");
     }
 
     private static String ucs2encode(int[] array) {

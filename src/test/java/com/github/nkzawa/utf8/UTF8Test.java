@@ -55,23 +55,23 @@ public class UTF8Test {
     public ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void encodeAndDecode() {
+    public void encodeAndDecode() throws UTF8Exception {
         for (Data data : DATA) {
             String reason = data.description != null? data.description : "U+" + Integer.toHexString(data.codePoint).toUpperCase();
             assertThat("Encoding: " + reason, data.encoded, is(UTF8.encode(data.decoded)));
             assertThat("Decoding: " + reason, data.decoded, is(UTF8.decode(data.encoded)));
         }
 
-        exception.expect(RuntimeException.class);
+        exception.expect(UTF8Exception.class);
         UTF8.decode("\uFFFF");
 
-        exception.expect(RuntimeException.class);
+        exception.expect(UTF8Exception.class);
         UTF8.decode("\u00E9\u0000\u0000");
 
-        exception.expect(RuntimeException.class);
+        exception.expect(UTF8Exception.class);
         UTF8.decode("\u00C2\uFFFF");
 
-        exception.expect(RuntimeException.class);
+        exception.expect(UTF8Exception.class);
         UTF8.decode("\u00F0\u009D");
     }
 

@@ -2,6 +2,7 @@ package com.github.nkzawa.engineio.parser;
 
 
 import com.github.nkzawa.utf8.UTF8;
+import com.github.nkzawa.utf8.UTF8Exception;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -73,7 +74,11 @@ public class Parser {
         } catch (IndexOutOfBoundsException e) {
             type = -1;
         }
-        data = UTF8.decode(data);
+        try {
+            data = UTF8.decode(data);
+        } catch (UTF8Exception e) {
+            return err;
+        }
 
         if (type < 0 || type >= packetslist.size()) {
             return err;
@@ -164,7 +169,6 @@ public class Parser {
 
                 if (msg.length() != 0) {
                     Packet<String> packet = decodePacket(msg);
-
                     if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
                         callback.call(err, 0, 1);
                         return;

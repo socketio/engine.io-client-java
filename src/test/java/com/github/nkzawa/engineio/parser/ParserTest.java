@@ -170,6 +170,13 @@ public class ParserTest {
     }
 
     @Test
+    public void decodeInvalidUTF8() {
+        Packet<String> p = decodePacket("4\uffff");
+        assertThat(p.type, is(Packet.ERROR));
+        assertThat(p.data, is(ERROR_DATA));
+    }
+
+    @Test
     public void encodePayloads() {
         encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback<byte[]>() {
             @Override
@@ -302,6 +309,20 @@ public class ParserTest {
             }
         });
         decodePayload("1:a2:b", new DecodePayloadCallback<String>() {
+            @Override
+            public boolean call(Packet<String> packet, int index, int total) {
+                boolean isLast = index + 1 == total;
+                assertThat(packet.type, is(Packet.ERROR));
+                assertThat(packet.data, is(ERROR_DATA));
+                assertThat(isLast, is(true));
+                return true;
+            }
+        });
+    }
+
+    @Test
+    public void decodePayloadInvalidUTF8() {
+        decodePayload("2:4\uffff", new DecodePayloadCallback<String>() {
             @Override
             public boolean call(Packet<String> packet, int index, int total) {
                 boolean isLast = index + 1 == total;
