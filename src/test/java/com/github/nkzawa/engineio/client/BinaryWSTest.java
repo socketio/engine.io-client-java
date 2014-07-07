@@ -54,7 +54,7 @@ public class BinaryWSTest extends Connection {
     }
 
     @Test(timeout = TIMEOUT)
-    public void receiveBinaryDataAndMultiplebyteUTF8String() throws InterruptedException {
+    public void receiveBinaryDataAndMultibyteUTF8String() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
         final byte[] binaryData = new byte[5];
         for (int i = 0; i < binaryData.length; i++) {

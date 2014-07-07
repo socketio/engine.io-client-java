@@ -1,8 +1,19 @@
-var http = require('http').Server();
+var fs = require('fs');
 var engine = require('engine.io');
+
+var http;
+if (process.env.SSL) {
+  http = require('https').createServer({
+    key: fs.readFileSync(__dirname + '/key.pem'),
+    cert: fs.readFileSync(__dirname + '/cert.pem')
+  });
+} else {
+  http = require('http').createServer();
+}
+
 var server = engine.attach(http, {pingInterval: 500});
 
-var port = parseInt(process.argv[2], 10) || 3000
+var port = process.env.PORT || 3000
 http.listen(port, function() {
   console.log('Engine.IO server listening on port', port);
 });
@@ -17,6 +28,8 @@ server.on('connection', function(socket) {
   socket.on('error', function(err) {
     throw err;
   });
+}).on('error', function(err) {
+  console.error(err);
 });
 
 var handleRequest = server.handleRequest;

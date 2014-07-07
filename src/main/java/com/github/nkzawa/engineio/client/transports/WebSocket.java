@@ -6,6 +6,7 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
+import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_17;
 import org.java_websocket.handshake.ServerHandshake;
@@ -93,6 +94,9 @@ public class WebSocket extends Transport {
                     });
                 }
             };
+            if (this.sslContext != null) {
+                this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
+            }
             this.ws.connect();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);

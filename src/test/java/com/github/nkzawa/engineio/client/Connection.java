@@ -24,7 +24,7 @@ public abstract class Connection {
 
         final CountDownLatch latch = new CountDownLatch(1);
         serverProcess = Runtime.getRuntime().exec(
-                "node src/test/resources/index.js " + PORT, new String[] {"DEBUG=engine*"});
+                "node src/test/resources/server.js", createEnv());
         serverService = Executors.newCachedThreadPool();
         serverOutout = serverService.submit(new Runnable() {
             @Override
@@ -69,5 +69,15 @@ public abstract class Connection {
         serverError.cancel(true);
         serverService.shutdown();
         serverService.awaitTermination(3000, TimeUnit.MILLISECONDS);
+    }
+
+    Socket.Options createOptions() {
+        Socket.Options opts = new Socket.Options();
+        opts.port = PORT;
+        return opts;
+    }
+
+    String[] createEnv() {
+        return new String[] {"DEBUG=engine*", "PORT=" + PORT};
     }
 }

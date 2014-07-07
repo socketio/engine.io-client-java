@@ -30,7 +30,7 @@ public class ServerConnectionTest extends Connection {
     public void openAndClose() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 
-        socket = new Socket("ws://localhost:" + PORT);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -53,7 +53,7 @@ public class ServerConnectionTest extends Connection {
     public void messages() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> events = new LinkedBlockingQueue<String>();
 
-        socket = new Socket("ws://localhost:" + PORT);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -76,7 +76,7 @@ public class ServerConnectionTest extends Connection {
     public void handshake() throws URISyntaxException, InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        socket = new Socket("ws://localhost:" + PORT);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -102,7 +102,7 @@ public class ServerConnectionTest extends Connection {
     public void upgrade() throws URISyntaxException, InterruptedException {
         final BlockingQueue<Object[]> events = new LinkedBlockingQueue<Object[]>();
 
-        socket = new Socket("ws://localhost:" + PORT);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -136,10 +136,10 @@ public class ServerConnectionTest extends Connection {
     public void pollingHeaders() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
-        Socket.Options opts = new Socket.Options();
+        Socket.Options opts = createOptions();
         opts.transports = new String[] {Polling.NAME};
 
-        socket = new Socket("ws://localhost:" + PORT, opts);
+        socket = new Socket(opts);
         socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -172,10 +172,10 @@ public class ServerConnectionTest extends Connection {
     public void websocketHandshakeHeaders() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
-        Socket.Options opts = new Socket.Options();
+        Socket.Options opts = createOptions();
         opts.transports = new String[] {WebSocket.NAME};
 
-        socket = new Socket("ws://localhost:" + PORT, opts);
+        socket = new Socket(opts);
         socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -210,10 +210,7 @@ public class ServerConnectionTest extends Connection {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                Socket.Options opts = new Socket.Options();
-                opts.port = PORT;
-
-                final Socket socket = new Socket(opts);
+                final Socket socket = new Socket(createOptions());
 
                 socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
                     @Override
@@ -246,10 +243,7 @@ public class ServerConnectionTest extends Connection {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                Socket.Options opts = new Socket.Options();
-                opts.port = PORT;
-
-                final Socket socket = new Socket(opts);
+                final Socket socket = new Socket(createOptions());
 
                 socket.on(Socket.EVENT_UPGRADE, new Emitter.Listener() {
                     @Override

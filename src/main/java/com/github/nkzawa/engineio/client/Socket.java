@@ -10,6 +10,7 @@ import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
 import org.json.JSONException;
 
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -117,6 +118,7 @@ public class Socket extends Emitter {
     /*package*/ Transport transport;
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
+    private SSLContext sslContext;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -165,6 +167,7 @@ public class Socket extends Emitter {
         }
 
         this.secure = opts.secure;
+        this.sslContext = opts.sslContext;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
         this.query = opts.query != null ?
@@ -211,6 +214,7 @@ public class Socket extends Emitter {
         }
 
         Transport.Options opts = new Transport.Options();
+        opts.sslContext = this.sslContext;
         opts.hostname = this.hostname;
         opts.port = this.port;
         opts.secure = this.secure;

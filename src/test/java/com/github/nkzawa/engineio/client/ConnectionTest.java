@@ -21,9 +21,7 @@ public class ConnectionTest extends Connection {
     public void connectToLocalhost() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-        socket = new Socket(opts);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -45,9 +43,7 @@ public class ConnectionTest extends Connection {
     public void receiveMultibyteUTF8StringsWithPolling() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-        socket = new Socket(opts);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -71,9 +67,7 @@ public class ConnectionTest extends Connection {
     public void receiveEmoji() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-        socket = new Socket(opts);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
@@ -97,9 +91,7 @@ public class ConnectionTest extends Connection {
     public void notSendPacketsIfSocketCloses() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
 
-        Socket.Options opts = new Socket.Options();
-        opts.port = PORT;
-        socket = new Socket(opts);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {

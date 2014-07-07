@@ -6,6 +6,7 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
 
+import javax.net.ssl.SSLContext;
 import java.util.Map;
 
 public abstract class Transport extends Emitter {
@@ -39,6 +40,7 @@ public abstract class Transport extends Emitter {
     protected String path;
     protected String hostname;
     protected String timestampParam;
+    protected SSLContext sslContext;
     protected Socket socket;
 
     protected ReadyState readyState;
@@ -51,6 +53,7 @@ public abstract class Transport extends Emitter {
         this.query = opts.query;
         this.timestampParam = opts.timestampParam;
         this.timestampRequests = opts.timestampRequests;
+        this.sslContext = opts.sslContext;
         this.socket = opts.socket;
     }
 
@@ -140,6 +143,7 @@ public abstract class Transport extends Emitter {
         public int port;
         public int policyPort;
         public Map<String, String> query;
+        public SSLContext sslContext;
         protected Socket socket;
     }
 }

@@ -4,6 +4,8 @@ package com.github.nkzawa.engineio.client.transports;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.thread.EventThread;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -36,6 +38,7 @@ public class PollingXHR extends Polling {
             opts = new Request.Options();
         }
         opts.uri = this.uri();
+        opts.sslContext = this.sslContext;
 
         Request req = new Request(opts);
 
@@ -141,15 +144,17 @@ public class PollingXHR extends Polling {
 
         private static final ExecutorService xhrService = Executors.newCachedThreadPool();
 
-        String method;
-        String uri;
-        byte[] data;
-        HttpURLConnection xhr;
+        private String method;
+        private String uri;
+        private byte[] data;
+        private SSLContext sslContext;
+        private HttpURLConnection xhr;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
+            this.sslContext = opts.sslContext;
         }
 
         public void create() {
@@ -162,6 +167,10 @@ public class PollingXHR extends Polling {
             } catch (IOException e) {
                 this.onError(e);
                 return;
+            }
+
+            if (xhr instanceof HttpsURLConnection && this.sslContext != null) {
+                ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
             }
 
             Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
@@ -293,6 +302,7 @@ public class PollingXHR extends Polling {
             public String uri;
             public String method;
             public byte[] data;
+            public SSLContext sslContext;
         }
     }
 }
