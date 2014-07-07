@@ -1,6 +1,7 @@
 package com.github.nkzawa.engineio.client;
 
 import com.github.nkzawa.emitter.Emitter;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -32,6 +33,11 @@ public class SSLConnectionTest extends Connection {
     }
 
     private Socket socket;
+
+    @After
+    public void tearDown() {
+        Socket.setDefaultSSLContext(null);
+    }
 
     @Override
     Socket.Options createOptions() {
@@ -74,16 +80,11 @@ public class SSLConnectionTest extends Connection {
                 socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
-                        assertThat((String)args[0], is("hi"));
+                        assertThat((String) args[0], is("hi"));
                         socket.close();
                         latch.countDown();
                     }
                 });
-            }
-        }).on("error", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                ((Exception)args[0]).printStackTrace();
             }
         });
         socket.open();
@@ -112,6 +113,29 @@ public class SSLConnectionTest extends Connection {
                                 latch.countDown();
                             }
                         });
+                    }
+                });
+            }
+        });
+        socket.open();
+        latch.await();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void defaultSSLContext() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Socket.setDefaultSSLContext(createSSLContext());
+        socket = new Socket(createOptions());
+        socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        assertThat((String) args[0], is("hi"));
+                        socket.close();
+                        latch.countDown();
                     }
                 });
             }

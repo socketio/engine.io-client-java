@@ -96,6 +96,8 @@ public class Socket extends Emitter {
 
     public static boolean priorWebsocketSuccess = false;
 
+    private static SSLContext defaultSSLContext;
+
     private boolean secure;
     private boolean upgrade;
     private boolean timestampRequests;
@@ -123,6 +125,9 @@ public class Socket extends Emitter {
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
 
+    public static void setDefaultSSLContext(SSLContext sslContext) {
+        defaultSSLContext = sslContext;
+    }
 
     public Socket() {
         this(new Options());
@@ -167,7 +172,7 @@ public class Socket extends Emitter {
         }
 
         this.secure = opts.secure;
-        this.sslContext = opts.sslContext;
+        this.sslContext = opts.sslContext != null ? opts.sslContext : defaultSSLContext;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
         this.query = opts.query != null ?
