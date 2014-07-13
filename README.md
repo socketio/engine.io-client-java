@@ -13,10 +13,12 @@ The latest artifact is available on Maven Central. Add the following dependency 
   <dependency>
     <groupId>com.github.nkzawa</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
   </dependency>
 </dependencies>
 ```
+
+Or to install it manually, please refer dependencies to [pom.xml](https://github.com/nkzawa/engine.io-client.java/blob/master/pom.xml).
 
 ## Usage
 Engine.IO-client.java has the similar api with the JS client. You can use `Socket` to connect:
@@ -78,6 +80,21 @@ socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
 });
 ```
 
+Use custom SSL settings:
+
+```java
+// default SSLContext for all sockets
+Socket.setDefaultSSLContext(mySSLContext);
+
+// set as an option
+opts = new Socket.Options();
+opts.sslContext = mySSLContext;
+socket = new Socket(opts);
+```
+
+## Features
+This library supports all of the features the JS client does, including events, options and upgrading transport. Android is fully supported.
+
 ### Extra features only for Java client
 Some features are added for simulating browser behavior like handling cookies.
 
@@ -112,10 +129,6 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
 See the Javadoc for more details.
 
 http://nkzawa.github.io/engine.io-client.java/apidocs/
-
-
-## Features
-This library supports all of the features the JS client does, including events, options and upgrading transport. Android is fully supported.
 
 ## License
 
