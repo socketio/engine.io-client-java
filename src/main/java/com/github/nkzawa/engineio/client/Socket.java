@@ -189,8 +189,10 @@ public class Socket extends Emitter {
 
     /**
      * Connects the client.
+     *
+     * @return a reference to to this object.
      */
-    public void open() {
+    public Socket open() {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
@@ -206,6 +208,7 @@ public class Socket extends Emitter {
                 transport.open();
             }
         });
+        return this;
     }
 
     private Transport createTransport(String name) {

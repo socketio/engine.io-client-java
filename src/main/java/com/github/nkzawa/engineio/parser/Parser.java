@@ -246,7 +246,7 @@ public class Parser {
         }
     }
 
-    public static String byteArrayToString(byte[] bytes) {
+    private static String byteArrayToString(byte[] bytes) {
         StringBuilder builder = new StringBuilder();
         for (byte b : bytes) {
             builder.appendCodePoint(b & 0xFF);
@@ -254,7 +254,7 @@ public class Parser {
         return builder.toString();
     }
 
-    public static byte[] stringToByteArray(String string) {
+    private static byte[] stringToByteArray(String string) {
         int len = string.length();
         byte[] bytes = new byte[len];
         for (int i = 0; i < len; i++) {
