@@ -139,7 +139,7 @@ public class Parser {
     }
 
     public static void decodePayload(String data, DecodePayloadCallback<String> callback) {
-        if (data == null || data.isEmpty()) {
+        if (data == null || data.length() == 0) {
             callback.call(err, 0, 1);
             return;
         }
