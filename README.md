@@ -119,7 +119,7 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
         @SuppressWarnings("unchecked")
         Map<String, String> headers = (Map<String, String>)args[0];
         // get cookies from server.
-        String cookie = headers.get("Set-Cookie"));
+        String cookie = headers.get("Set-Cookie");
       }
     });
   }
