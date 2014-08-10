@@ -202,14 +202,14 @@ public class PollingXHR extends Polling {
 
                         Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
-                        xhrHeaderFields = xhr.getHeaderFields();
+                        Map<String, List<String>> xhrHeaderFields = xhr.getHeaderFields();
                         if(xhrHeaderFields != null) {
                             for (String key : xhrHeaderFields.keySet()) {
                                 if (key == null) continue;
                                 headers.put(key, xhr.getHeaderField(key));
                             }
                         }
-                        
+
                         self.onResponseHeaders(headers);
 
                         final int statusCode = xhr.getResponseCode();
