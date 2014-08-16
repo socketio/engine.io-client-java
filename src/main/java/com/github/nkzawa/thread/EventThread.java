@@ -70,9 +70,13 @@ public class EventThread extends Thread {
         getExecutorService().execute(new Runnable() {
             @Override
             public void run() {
-                task.run();
-                if (counter.decrementAndGet() == 0) {
-                    service.shutdown();
+                try {
+                    task.run();
+                } finally {
+                    if (counter.decrementAndGet() == 0) {
+                        service.shutdown();
+                        thread = null;
+                    }
                 }
             }
         });
