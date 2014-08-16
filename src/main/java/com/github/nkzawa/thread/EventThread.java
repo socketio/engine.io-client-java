@@ -4,7 +4,6 @@ package com.github.nkzawa.thread;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -20,22 +19,15 @@ public class EventThread extends Thread {
         }
     };
 
-    private static ExecutorService service;
-
     private static volatile EventThread thread;
 
-    private static AtomicInteger counter = new AtomicInteger();
+    private static ExecutorService service;
+
+    private static int counter = 0;
 
 
     private EventThread(Runnable runnable) {
         super(runnable);
-    }
-
-    private static ExecutorService getExecutorService() {
-        if (service == null || service.isShutdown()) {
-            service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
-        }
-        return service;
     }
 
     /**
@@ -66,16 +58,25 @@ public class EventThread extends Thread {
      * @param task
      */
     public static void nextTick(final Runnable task) {
-        counter.incrementAndGet();
-        getExecutorService().execute(new Runnable() {
+        synchronized (EventThread.class) {
+          counter++;
+          if (service == null || service.isShutdown()) {
+              service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
+          }
+        }
+
+        service.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     task.run();
                 } finally {
-                    if (counter.decrementAndGet() == 0) {
-                        service.shutdown();
-                        thread = null;
+                    synchronized (EventThread.class) {
+                        counter--;
+                        if (counter == 0) {
+                            service.shutdown();
+                            thread = null;
+                        }
                     }
                 }
             }
