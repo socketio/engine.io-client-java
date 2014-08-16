@@ -1,6 +1,5 @@
 package com.github.nkzawa.thread;
 
-import com.github.nkzawa.thread.EventThread;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -36,17 +35,14 @@ public class EventThreadTest {
     @Test
     public void exec() throws InterruptedException {
         final BlockingQueue<Integer> queue = new LinkedBlockingQueue<Integer>();
-        final Set<Thread> threads = new HashSet<Thread>();
 
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                threads.add(Thread.currentThread());
                 queue.offer(0);
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        threads.add(Thread.currentThread());
                         queue.offer(1);
                     }
                 });
@@ -57,7 +53,6 @@ public class EventThreadTest {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                threads.add(Thread.currentThread());
                 queue.offer(3);
             }
         });
@@ -65,7 +60,6 @@ public class EventThreadTest {
         for (int i = 0; i < 4; i++) {
             assertThat(queue.take(), is(i));
         }
-        assertThat(threads.size(), is(1));
     }
 
     @Test

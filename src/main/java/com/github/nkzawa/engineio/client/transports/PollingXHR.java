@@ -14,8 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 public class PollingXHR extends Polling {
@@ -142,8 +140,6 @@ public class PollingXHR extends Polling {
         public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
         public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
 
-        private static final ExecutorService xhrService = Executors.newCachedThreadPool();
-
         private String method;
         private String uri;
         private byte[] data;
@@ -186,7 +182,7 @@ public class PollingXHR extends Polling {
             }
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
-            xhrService.submit(new Runnable() {
+            new Thread(new Runnable() {
                 @Override
                 public void run() {
                     OutputStream output = null;
@@ -253,7 +249,7 @@ public class PollingXHR extends Polling {
                         } catch (IOException e) {}
                     }
                 }
-            });
+            }).start();
         }
 
         private void onSuccess() {

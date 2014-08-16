@@ -4,6 +4,7 @@ package com.github.nkzawa.thread;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -11,19 +12,30 @@ import java.util.concurrent.ThreadFactory;
  */
 public class EventThread extends Thread {
 
-    private static final ExecutorService service = Executors.newSingleThreadExecutor(new ThreadFactory() {
+    private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
         @Override
         public Thread newThread(Runnable runnable) {
             thread = new EventThread(runnable);
             return thread;
         }
-    });
+    };
+
+    private static ExecutorService service;
 
     private static volatile EventThread thread;
+
+    private static AtomicInteger counter = new AtomicInteger();
 
 
     private EventThread(Runnable runnable) {
         super(runnable);
+    }
+
+    private static ExecutorService getExecutorService() {
+        if (service == null || service.isShutdown()) {
+            service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
+        }
+        return service;
     }
 
     /**
@@ -44,7 +56,7 @@ public class EventThread extends Thread {
         if (isCurrent()) {
             task.run();
         } else {
-            service.execute(task);
+            nextTick(task);
         }
     }
 
@@ -53,8 +65,16 @@ public class EventThread extends Thread {
      *
      * @param task
      */
-    public static void nextTick(Runnable task) {
-        service.execute(task);
+    public static void nextTick(final Runnable task) {
+        counter.incrementAndGet();
+        getExecutorService().execute(new Runnable() {
+            @Override
+            public void run() {
+                task.run();
+                if (counter.decrementAndGet() == 0) {
+                    service.shutdown();
+                }
+            }
+        });
     }
-
 }

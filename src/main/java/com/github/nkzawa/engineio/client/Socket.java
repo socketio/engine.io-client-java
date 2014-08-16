@@ -123,7 +123,7 @@ public class Socket extends Emitter {
     private SSLContext sslContext;
 
     private ReadyState readyState;
-    private ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService heartbeatScheduler;
 
     public static void setDefaultSSLContext(SSLContext sslContext) {
         defaultSSLContext = sslContext;
@@ -333,7 +333,7 @@ public class Socket extends Emitter {
                         } else {
                             logger.fine(String.format("probe transport '%s' failed", name));
                             EngineIOException err = new EngineIOException("probe error");
-                            //err.transport = transport[0].name;
+                            err.transport = transport[0].name;
                             self.emit(EVENT_UPGRADE_ERROR, err);
                         }
                     }
@@ -494,7 +494,7 @@ public class Socket extends Emitter {
 
     private void onHeartbeat(long timeout) {
         if (this.pingTimeoutTimer != null) {
-            pingTimeoutTimer.cancel(true);
+            pingTimeoutTimer.cancel(false);
         }
 
         if (timeout <= 0) {
@@ -502,7 +502,7 @@ public class Socket extends Emitter {
         }
 
         final Socket self = this;
-        this.pingTimeoutTimer = this.heartbeatScheduler.schedule(new Runnable() {
+        this.pingTimeoutTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
             @Override
             public void run() {
                 EventThread.exec(new Runnable() {
@@ -518,11 +518,11 @@ public class Socket extends Emitter {
 
     private void setPing() {
         if (this.pingIntervalTimer != null) {
-            pingIntervalTimer.cancel(true);
+            pingIntervalTimer.cancel(false);
         }
 
         final Socket self = this;
-        this.pingIntervalTimer = this.heartbeatScheduler.schedule(new Runnable() {
+        this.pingIntervalTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
             @Override
             public void run() {
                 EventThread.exec(new Runnable() {
@@ -697,10 +697,13 @@ public class Socket extends Emitter {
 
             // clear timers
             if (this.pingIntervalTimer != null) {
-                this.pingIntervalTimer.cancel(true);
+                this.pingIntervalTimer.cancel(false);
             }
             if (this.pingTimeoutTimer != null) {
-                this.pingTimeoutTimer.cancel(true);
+                this.pingTimeoutTimer.cancel(false);
+            }
+            if (this.heartbeatScheduler != null) {
+                this.heartbeatScheduler.shutdown();
             }
 
             EventThread.nextTick(new Runnable() {
@@ -740,6 +743,13 @@ public class Socket extends Emitter {
             }
         }
         return filteredUpgrades;
+    }
+
+    private ScheduledExecutorService getHeartbeatScheduler() {
+        if (this.heartbeatScheduler == null || this.heartbeatScheduler.isShutdown()) {
+            this.heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+        }
+        return this.heartbeatScheduler;
     }
 
     public static class Options extends Transport.Options {
