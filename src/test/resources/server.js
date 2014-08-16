@@ -32,28 +32,27 @@ server.on('connection', function(socket) {
   console.error(err);
 });
 
-var handleRequest = server.handleRequest;
-server.handleRequest = function(req, res) {
+
+function before(context, name, fn) {
+  var method = context[name];
+  context[name] = function() {
+    fn.apply(this, arguments);
+    return method.apply(this, arguments);
+  };
+}
+
+before(server, 'handleRequest', function(req, res) {
   // echo a header value
   var value = req.headers['x-engineio'];
-  if (value) {
-    res.setHeader('X-EngineIO', value);
-  }
+  if (!value) return;
+  res.setHeader('X-EngineIO', value);
+});
 
-  handleRequest.call(this, req, res);
-};
-
-var headerValue;
-var handleUpgrade = server.handleUpgrade;
-server.handleUpgrade = function(req, socket, head) {
+before(server, 'handleUpgrade', function(req, socket, head) {
   // echo a header value for websocket handshake
-  headerValue = req.headers['x-engineio'];
-  handleUpgrade.call(this, req, socket, head);
-};
-
-// FIXME: support parallel requests
-server.ws.on('headers', function(headers) {
-  if (headerValue) {
-    headers.push('X-EngineIO: ' + headerValue);
-  }
+  var value = req.headers['x-engineio'];
+  if (!value) return;
+  this.ws.once('headers', function(headers) {
+    headers.push('X-EngineIO: ' + value);
+  });
 });
