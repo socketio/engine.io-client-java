@@ -7,7 +7,8 @@ import org.junit.runners.JUnit4;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -19,7 +20,7 @@ public class ConnectionTest extends Connection {
 
     @Test(timeout = TIMEOUT)
     public void connectToLocalhost() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
@@ -28,20 +29,20 @@ public class ConnectionTest extends Connection {
                 socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
-                        assertThat((String)args[0], is("hi"));
+                        values.offer(args[0]);
                         socket.close();
-                        semaphore.release();
                     }
                 });
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((String)values.take(), is("hi"));
     }
 
     @Test(timeout = TIMEOUT)
     public void receiveMultibyteUTF8StringsWithPolling() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
@@ -52,20 +53,20 @@ public class ConnectionTest extends Connection {
                     @Override
                     public void call(Object... args) {
                         if ("hi".equals(args[0])) return;
-                        assertThat((String)args[0], is("cash money €€€"));
+                        values.offer(args[0]);
                         socket.close();
-                        semaphore.release();
                     }
                 });
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((String)values.take(), is("cash money €€€"));
     }
 
     @Test(timeout = TIMEOUT)
     public void receiveEmoji() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
@@ -76,20 +77,20 @@ public class ConnectionTest extends Connection {
                     @Override
                     public void call(Object... args) {
                         if ("hi".equals(args[0])) return;
-                        assertThat((String)args[0], is("\uD800-\uDB7F\uDB80-\uDBFF\uDC00-\uDFFF\uE000-\uF8FF"));
+                        values.offer(args[0]);
                         socket.close();
-                        semaphore.release();
                     }
                 });
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((String)values.take(), is("\uD800-\uDB7F\uDB80-\uDBFF\uDC00-\uDFFF\uE000-\uF8FF"));
     }
 
     @Test(timeout = TIMEOUT)
     public void notSendPacketsIfSocketCloses() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
@@ -107,14 +108,13 @@ public class ConnectionTest extends Connection {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        assertThat(noPacket[0], is(true));
-                        semaphore.release();
+                        values.offer(noPacket[0]);
                     }
                 }, 1200);
 
             }
         });
         socket.open();
-        semaphore.acquire();
+        assertThat((Boolean)values.take(), is(true));
     }
 }

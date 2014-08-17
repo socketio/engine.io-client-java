@@ -5,9 +5,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -18,7 +18,8 @@ public class BinaryWSTest extends Connection {
 
     @Test(timeout = TIMEOUT)
     public void receiveBinaryData() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
+
         final byte[] binaryData = new byte[5];
         for (int i = 0; i < binaryData.length; i++) {
             binaryData[i] = (byte)i;
@@ -37,12 +38,7 @@ public class BinaryWSTest extends Connection {
                             @Override
                             public void call(Object... args) {
                                 if (args[0] instanceof String) return;
-
-                                assertThat(args[0], instanceOf(byte[].class));
-                                assertThat((byte[])args[0], is(binaryData));
-
-                                socket.close();
-                                semaphore.release();
+                                values.offer(args[0]);
                             }
                         });
                     }
@@ -50,12 +46,15 @@ public class BinaryWSTest extends Connection {
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((byte[])values.take(), is(binaryData));
+        socket.close();
     }
 
     @Test(timeout = TIMEOUT)
     public void receiveBinaryDataAndMultibyteUTF8String() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
+
         final byte[] binaryData = new byte[5];
         for (int i = 0; i < binaryData.length; i++) {
             binaryData[i] = (byte)i;
@@ -78,15 +77,8 @@ public class BinaryWSTest extends Connection {
                             public void call(Object... args) {
                                 if ("hi".equals(args[0])) return;
 
-                                if (msg[0] == 0) {
-                                    assertThat(args[0], instanceOf(byte[].class));
-                                    assertThat((byte[])args[0], is(binaryData));
-                                    msg[0]++;
-                                } else {
-                                    assertThat((String)args[0], is("cash money €€€"));
-                                    socket.close();
-                                    semaphore.release();
-                                }
+                                values.offer(args[0]);
+                                msg[0]++;
                             }
                         });
                     }
@@ -94,6 +86,9 @@ public class BinaryWSTest extends Connection {
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((byte[])values.take(), is(binaryData));
+        assertThat((String)values.take(), is("cash money €€€"));
+        socket.close();
     }
 }

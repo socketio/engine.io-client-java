@@ -14,7 +14,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -69,7 +70,7 @@ public class SSLConnectionTest extends Connection {
 
     @Test(timeout = TIMEOUT)
     public void connect() throws Exception {
-        final CountDownLatch latch = new CountDownLatch(1);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         Socket.Options opts = createOptions();
         opts.sslContext = createSSLContext();
@@ -80,20 +81,20 @@ public class SSLConnectionTest extends Connection {
                 socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
-                        assertThat((String) args[0], is("hi"));
-                        socket.close();
-                        latch.countDown();
+                        values.offer(args[0]);
                     }
                 });
             }
         });
         socket.open();
-        latch.await();
+
+        assertThat((String)values.take(), is("hi"));
+        socket.close();
     }
 
     @Test(timeout = TIMEOUT)
     public void upgrade() throws Exception {
-        final CountDownLatch latch = new CountDownLatch(1);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         Socket.Options opts = createOptions();
         opts.sslContext = createSSLContext();
@@ -108,9 +109,7 @@ public class SSLConnectionTest extends Connection {
                         socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                             @Override
                             public void call(Object... args) {
-                                assertThat((String) args[0], is("hi"));
-                                socket.close();
-                                latch.countDown();
+                                values.offer(args[0]);
                             }
                         });
                     }
@@ -118,12 +117,14 @@ public class SSLConnectionTest extends Connection {
             }
         });
         socket.open();
-        latch.await();
+
+        assertThat((String)values.take(), is("hi"));
+        socket.close();
     }
 
     @Test(timeout = TIMEOUT)
     public void defaultSSLContext() throws Exception {
-        final CountDownLatch latch = new CountDownLatch(1);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         Socket.setDefaultSSLContext(createSSLContext());
         socket = new Socket(createOptions());
@@ -133,14 +134,14 @@ public class SSLConnectionTest extends Connection {
                 socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
-                        assertThat((String) args[0], is("hi"));
-                        socket.close();
-                        latch.countDown();
+                        values.offer(args[0]);
                     }
                 });
             }
         });
         socket.open();
-        latch.await();
+
+        assertThat((String)values.take(), is("hi"));
+        socket.close();
     }
 }

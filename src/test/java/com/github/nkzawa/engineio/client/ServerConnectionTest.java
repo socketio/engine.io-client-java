@@ -12,7 +12,6 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -74,28 +73,25 @@ public class ServerConnectionTest extends Connection {
 
     @Test(timeout = TIMEOUT)
     public void handshake() throws URISyntaxException, InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         socket = new Socket(createOptions());
         socket.on(Socket.EVENT_HANDSHAKE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                assertThat(args.length, is(1));
-                assertThat(args[0], is(instanceOf(HandshakeData.class)));
-
-                HandshakeData data = (HandshakeData)args[0];
-                assertThat(data.sid, is(notNullValue()));
-                assertThat(data.upgrades, is(notNullValue()));
-                assertThat(data.upgrades, is(not(emptyArray())));
-                assertThat(data.pingTimeout, is(greaterThan((long)0)));
-                assertThat(data.pingInterval, is(greaterThan((long) 0)));
-
-                socket.close();
-                semaphore.release();
+                values.offer(args);
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        Object[] args = (Object[])values.take();
+        assertThat(args.length, is(1));
+        HandshakeData data = (HandshakeData)args[0];
+        assertThat(data.sid, is(notNullValue()));
+        assertThat(data.upgrades, is(not(emptyArray())));
+        assertThat(data.pingTimeout, is(greaterThan((long)0)));
+        assertThat(data.pingInterval, is(greaterThan((long) 0)));
+        socket.close();
     }
 
     @Test(timeout = TIMEOUT)
@@ -205,7 +201,7 @@ public class ServerConnectionTest extends Connection {
 
     @Test(timeout = TIMEOUT)
     public void rememberWebsocket() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         EventThread.exec(new Runnable() {
             @Override
@@ -222,23 +218,25 @@ public class ServerConnectionTest extends Connection {
                             opts.port = PORT;
                             opts.rememberUpgrade = true;
 
-                            final Socket socket2 = new Socket(opts);
+                            Socket socket2 = new Socket(opts);
                             socket2.open();
-                            assertThat(socket2.transport.name, is(WebSocket.NAME));
+                            values.offer(socket2.transport.name);
+                            socket2.close();
                         }
-                        semaphore.release();
                     }
                 });
                 socket.open();
-                assertThat(socket.transport.name, is(Polling.NAME));
+                values.offer(socket.transport.name);
             }
         });
-        semaphore.acquire();
+
+        assertThat((String)values.take(), is(Polling.NAME));
+        assertThat((String)values.take(), is(WebSocket.NAME));
     }
 
     @Test(timeout = TIMEOUT)
     public void notRememberWebsocket() throws InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         EventThread.exec(new Runnable() {
             @Override
@@ -257,15 +255,17 @@ public class ServerConnectionTest extends Connection {
 
                             final Socket socket2 = new Socket(opts);
                             socket2.open();
-                            assertThat(socket2.transport.name, is(not(WebSocket.NAME)));
+                            values.offer(socket2.transport.name);
+                            socket2.close();
                         }
-                        semaphore.release();
                     }
                 });
                 socket.open();
-                assertThat(socket.transport.name, is(Polling.NAME));
+                values.offer(socket.transport.name);
             }
         });
-        semaphore.acquire();
+
+        assertThat((String)values.take(), is(Polling.NAME));
+        assertThat((String)values.take(), is(not(WebSocket.NAME)));
     }
 }

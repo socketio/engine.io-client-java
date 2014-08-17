@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -41,7 +42,8 @@ public class SocketTest {
      */
     @Test
     public void socketClosing() throws URISyntaxException, InterruptedException {
-        final Semaphore semaphore = new Semaphore(0);
+        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
+
         Socket socket = new Socket("ws://0.0.0.0:8080");
         final boolean[] closed = {false};
 
@@ -52,8 +54,7 @@ public class SocketTest {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        assertThat(closed[0], is(true));
-                        semaphore.release();
+                        values.offer(closed[0]);
                     }
                 }, 20);
             }
@@ -66,7 +67,8 @@ public class SocketTest {
             }
         });
         socket.open();
-        semaphore.acquire();
+
+        assertThat((Boolean)values.take(), is(true));
     }
 
 }
