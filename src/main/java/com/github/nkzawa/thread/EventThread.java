@@ -15,11 +15,12 @@ public class EventThread extends Thread {
         @Override
         public Thread newThread(Runnable runnable) {
             thread = new EventThread(runnable);
+            thread.setName("EventThread");
             return thread;
         }
     };
 
-    private static volatile EventThread thread;
+    private static EventThread thread;
 
     private static ExecutorService service;
 
@@ -58,14 +59,16 @@ public class EventThread extends Thread {
      * @param task
      */
     public static void nextTick(final Runnable task) {
+        ExecutorService executor;
         synchronized (EventThread.class) {
           counter++;
-          if (service == null || service.isShutdown()) {
+          if (service == null) {
               service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
           }
+          executor = service;
         }
 
-        service.execute(new Runnable() {
+        executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -75,6 +78,7 @@ public class EventThread extends Thread {
                         counter--;
                         if (counter == 0) {
                             service.shutdown();
+                            service = null;
                             thread = null;
                         }
                     }
