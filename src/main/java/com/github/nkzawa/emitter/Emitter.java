@@ -2,6 +2,7 @@ package com.github.nkzawa.emitter;
 
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -17,9 +18,6 @@ public class Emitter {
 
     private ConcurrentMap<String, ConcurrentLinkedQueue<Listener>> callbacks
             = new ConcurrentHashMap<String, ConcurrentLinkedQueue<Listener>>();
-
-    private ConcurrentMap<Listener, Listener> onceCallbacks = new ConcurrentHashMap<Listener, Listener>();
-
 
     /**
      * Listens on the event.
@@ -48,16 +46,7 @@ public class Emitter {
      * @return a reference to this object.
      */
     public Emitter once(final String event, final Listener fn) {
-        Listener on = new Listener() {
-            @Override
-            public void call(Object... args) {
-                Emitter.this.off(event, this);
-                fn.call(args);
-            }
-        };
-
-        this.onceCallbacks.put(fn, on);
-        this.on(event, on);
+        this.on(event, new OnceListener(event, fn));
         return this;
     }
 
@@ -68,7 +57,6 @@ public class Emitter {
      */
     public Emitter off() {
         this.callbacks.clear();
-        this.onceCallbacks.clear();
         return this;
     }
 
@@ -79,12 +67,7 @@ public class Emitter {
      * @return a reference to this object.
      */
     public Emitter off(String event) {
-        ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.remove(event);
-        if (callbacks != null) {
-            for (Listener fn : callbacks) {
-                this.onceCallbacks.remove(fn);
-            }
-        }
+        this.callbacks.remove(event);
         return this;
     }
 
@@ -98,10 +81,26 @@ public class Emitter {
     public Emitter off(String event, Listener fn) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
         if (callbacks != null) {
-            Listener off = this.onceCallbacks.remove(fn);
-            callbacks.remove(off != null ? off : fn);
+            Iterator<Listener> it = callbacks.iterator();
+            while (it.hasNext()) {
+                Listener internal = it.next();
+                if (Emitter.sameAs(fn, internal)) {
+                    it.remove();
+                    break;
+                }
+            }
         }
         return this;
+    }
+
+    private static boolean sameAs(Listener fn, Listener internal) {
+        if (fn.equals(internal)) {
+            return true;
+        } else if (internal instanceof OnceListener) {
+            return fn.equals(((OnceListener) internal).fn);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -114,7 +113,6 @@ public class Emitter {
     public Emitter emit(String event, Object... args) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
         if (callbacks != null) {
-            callbacks = new ConcurrentLinkedQueue<Listener>(callbacks);
             for (Listener fn : callbacks) {
                 fn.call(args);
             }
@@ -131,7 +129,7 @@ public class Emitter {
     public List<Listener> listeners(String event) {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
         return callbacks != null ?
-                new ArrayList<Listener>(callbacks) : new ArrayList<Listener>();
+                new ArrayList<Listener>(callbacks) : new ArrayList<Listener>(0);
     }
 
     /**
@@ -141,11 +139,29 @@ public class Emitter {
      * @return a reference to this object.
      */
     public boolean hasListeners(String event) {
-        return !this.listeners(event).isEmpty();
+        ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
+        return callbacks != null && !callbacks.isEmpty();
     }
 
     public static interface Listener {
 
         public void call(Object... args);
+    }
+
+    private class OnceListener implements Listener {
+
+        public final String event;
+        public final Listener fn;
+
+        public OnceListener(String event, Listener fn) {
+            this.event = event;
+            this.fn = fn;
+        }
+
+        @Override
+        public void call(Object... args) {
+            Emitter.this.off(this.event, this);
+            this.fn.call(args);
+        }
     }
 }
