@@ -39,6 +39,10 @@ public class Parser {
     private Parser() {}
 
     public static void encodePacket(Packet packet, EncodeCallback callback) {
+        encodePacket(packet, false, callback);
+    }
+
+    public static void encodePacket(Packet packet, boolean utf8encode, EncodeCallback callback) {
         if (packet.data instanceof byte[]) {
             @SuppressWarnings("unchecked")
             Packet<byte[]> _packet = packet;
@@ -51,7 +55,7 @@ public class Parser {
         String encoded = String.valueOf(packets.get(packet.type));
 
         if (null != packet.data) {
-            encoded += UTF8.encode(String.valueOf(packet.data));
+            encoded += utf8encode ? UTF8.encode(String.valueOf(packet.data)) : String.valueOf(packet.data);
         }
 
         @SuppressWarnings("unchecked")
@@ -68,16 +72,23 @@ public class Parser {
     }
 
     public static Packet<String> decodePacket(String data) {
+        return decodePacket(data, false);
+    }
+
+    public static Packet<String> decodePacket(String data, boolean utf8decode) {
         int type;
         try {
             type = Character.getNumericValue(data.charAt(0));
         } catch (IndexOutOfBoundsException e) {
             type = -1;
         }
-        try {
-            data = UTF8.decode(data);
-        } catch (UTF8Exception e) {
-            return err;
+
+        if (utf8decode) {
+            try {
+                data = UTF8.decode(data);
+            } catch (UTF8Exception e) {
+                return err;
+            }
         }
 
         if (type < 0 || type >= packetslist.size()) {
@@ -107,7 +118,7 @@ public class Parser {
         final ArrayList<byte[]> results = new ArrayList<byte[]>(packets.length);
 
         for (Packet packet : packets) {
-            encodePacket(packet, new EncodeCallback() {
+            encodePacket(packet, true, new EncodeCallback() {
                 @Override
                 public void call(Object packet) {
                     if (packet instanceof String) {
@@ -168,7 +179,7 @@ public class Parser {
                 }
 
                 if (msg.length() != 0) {
-                    Packet<String> packet = decodePacket(msg);
+                    Packet<String> packet = decodePacket(msg, true);
                     if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
                         callback.call(err, 0, 1);
                         return;
@@ -237,7 +248,7 @@ public class Parser {
             if (buffer instanceof String) {
                 @SuppressWarnings("unchecked")
                 DecodePayloadCallback<String> _callback = callback;
-                _callback.call(decodePacket((String)buffer), i, total);
+                _callback.call(decodePacket((String)buffer, true), i, total);
             } else if (buffer instanceof byte[]) {
                 @SuppressWarnings("unchecked")
                 DecodePayloadCallback<byte[]> _callback = callback;

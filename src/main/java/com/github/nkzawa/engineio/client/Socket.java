@@ -208,6 +208,16 @@ public class Socket extends Emitter {
                 String transportName;
                 if (Socket.this.rememberUpgrade && Socket.priorWebsocketSuccess && Socket.this.transports.contains(WebSocket.NAME)) {
                     transportName = WebSocket.NAME;
+                } else if (0 == Socket.this.transports.size()) {
+                    // Emit error on next tick so it can be listened to
+                    final Socket self = Socket.this;
+                    EventThread.nextTick(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.emit(Socket.EVENT_ERROR, new EngineIOException("No transports available"));
+                        }
+                    });
+                    return;
                 } else {
                     transportName = Socket.this.transports.get(0);
                 }

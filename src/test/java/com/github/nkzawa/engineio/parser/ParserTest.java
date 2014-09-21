@@ -171,7 +171,7 @@ public class ParserTest {
 
     @Test
     public void decodeInvalidUTF8() {
-        Packet<String> p = decodePacket("4\uffff");
+        Packet<String> p = decodePacket("4\uffff", true);
         assertThat(p.type, is(Packet.ERROR));
         assertThat(p.data, is(ERROR_DATA));
     }

@@ -142,7 +142,10 @@ public class PollingXHR extends Polling {
 
         private String method;
         private String uri;
+
+        // data is always a binary
         private byte[] data;
+
         private SSLContext sslContext;
         private HttpURLConnection xhr;
 
@@ -186,8 +189,6 @@ public class PollingXHR extends Polling {
                 @Override
                 public void run() {
                     OutputStream output = null;
-                    InputStream input = null;
-                    BufferedReader reader = null;
                     try {
                         if (self.data != null) {
                             xhr.setFixedLengthStreamingMode(self.data.length);
@@ -210,33 +211,7 @@ public class PollingXHR extends Polling {
 
                         final int statusCode = xhr.getResponseCode();
                         if (HttpURLConnection.HTTP_OK == statusCode) {
-                            String contentType = xhr.getContentType();
-                            if ("application/octet-stream".equalsIgnoreCase(contentType)) {
-                                input = new BufferedInputStream(xhr.getInputStream());
-                                List<byte[]> buffers = new ArrayList<byte[]>();
-                                int capacity = 0;
-                                int len = 0;
-                                byte[] buffer = new byte[1024];
-                                while ((len = input.read(buffer)) > 0) {
-                                    byte[] _buffer = new byte[len];
-                                    System.arraycopy(buffer, 0, _buffer, 0, len);
-                                    buffers.add(_buffer);
-                                    capacity += len;
-                                }
-                                ByteBuffer data = ByteBuffer.allocate(capacity);
-                                for (byte[] b : buffers) {
-                                    data.put(b);
-                                }
-                                self.onData(data.array());
-                            } else {
-                                String line;
-                                StringBuilder data = new StringBuilder();
-                                reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                                while ((line = reader.readLine()) != null) {
-                                    data.append(line);
-                                }
-                                self.onData(data.toString());
-                            }
+                            self.onLoad();
                         } else {
                             self.onError(new IOException(Integer.toString(statusCode)));
                         }
@@ -245,12 +220,6 @@ public class PollingXHR extends Polling {
                     } finally {
                         try {
                             if (output != null) output.close();
-                        } catch (IOException e) {}
-                        try {
-                            if (input != null) input.close();
-                        } catch (IOException e) {}
-                        try {
-                            if (reader != null) reader.close();
                         } catch (IOException e) {}
                     }
                 }
@@ -294,6 +263,48 @@ public class PollingXHR extends Polling {
             xhr = null;
         }
 
+        private void onLoad() {
+            InputStream input = null;
+            BufferedReader reader = null;
+            String contentType = xhr.getContentType();
+            try {
+                if ("application/octet-stream".equalsIgnoreCase(contentType)) {
+                    input = new BufferedInputStream(this.xhr.getInputStream());
+                    List<byte[]> buffers = new ArrayList<byte[]>();
+                    int capacity = 0;
+                    int len = 0;
+                    byte[] buffer = new byte[1024];
+                    while ((len = input.read(buffer)) > 0) {
+                        byte[] _buffer = new byte[len];
+                        System.arraycopy(buffer, 0, _buffer, 0, len);
+                        buffers.add(_buffer);
+                        capacity += len;
+                    }
+                    ByteBuffer data = ByteBuffer.allocate(capacity);
+                    for (byte[] b : buffers) {
+                        data.put(b);
+                    }
+                    this.onData(data.array());
+                } else {
+                    String line;
+                    StringBuilder data = new StringBuilder();
+                    reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
+                    while ((line = reader.readLine()) != null) {
+                        data.append(line);
+                    }
+                    this.onData(data.toString());
+                }
+            } catch (IOException e) {
+                this.onError(e);
+            } finally {
+                try {
+                    if (input != null) input.close();
+                } catch (IOException e) {}
+                try {
+                    if (reader != null) reader.close();
+                } catch (IOException e) {}
+            }
+        }
         public void abort() {
             this.cleanup();
         }
