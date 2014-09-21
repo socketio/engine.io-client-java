@@ -164,10 +164,19 @@ public class Socket extends Emitter {
 
     public Socket(Options opts) {
         if (opts.host != null) {
-            String[] pieces = opts.host.split(":");
-            opts.hostname = pieces[0];
-            if (pieces.length > 1) {
-                opts.port = Integer.parseInt(pieces[pieces.length - 1]);
+            boolean ipv6uri = opts.host.indexOf(']') != -1;
+            String[] pieces = ipv6uri ? opts.host.split("]:") : opts.host.split(":");
+            boolean ipv6 = (pieces.length > 2 || opts.host.indexOf("::") == -1);
+            if (ipv6) {
+                opts.hostname = opts.host;
+            } else {
+                opts.hostname = pieces[0];
+                if (ipv6uri) {
+                    opts.hostname = opts.hostname.substring(1);
+                }
+                if (pieces.length > 1) {
+                    opts.port = Integer.parseInt(pieces[pieces.length - 1]);
+                }
             }
         }
 
