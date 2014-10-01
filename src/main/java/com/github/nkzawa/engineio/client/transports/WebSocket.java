@@ -95,11 +95,14 @@ public class WebSocket extends Transport {
                 }
             };
             if (this.sslContext != null) {
-                this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
+                SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
+                this.ws.setSocket(factory.createSocket());
             }
             this.ws.connect();
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
+        } catch (IOException e){
+            e.printStackTrace();
         }
     }
 
