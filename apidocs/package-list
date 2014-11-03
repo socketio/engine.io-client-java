@@ -1,0 +1,8 @@
+com.github.nkzawa.emitter
+com.github.nkzawa.engineio.client
+com.github.nkzawa.engineio.client.transports
+com.github.nkzawa.engineio.parser
+com.github.nkzawa.global
+com.github.nkzawa.parseqs
+com.github.nkzawa.thread
+com.github.nkzawa.utf8
