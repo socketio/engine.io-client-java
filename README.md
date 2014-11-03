@@ -13,7 +13,7 @@ The latest artifact is available on Maven Central. Add the following dependency 
   <dependency>
     <groupId>com.github.nkzawa</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
   </dependency>
 </dependencies>
 ```
