@@ -1,6 +1,5 @@
 package com.github.nkzawa.engineio.client;
 
-import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.transports.Polling;
 import com.github.nkzawa.engineio.client.transports.WebSocket;
 import org.junit.Test;
@@ -10,10 +9,6 @@ import org.junit.runners.JUnit4;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -34,41 +29,23 @@ public class SocketTest {
         assertThat(socket.filterUpgrades(upgrades), is(expected));
     }
 
-    /**
-     * should emit close on incorrect connection.
-     *
-     * @throws URISyntaxException
-     * @throws InterruptedException
-     */
-    @Test
-    public void socketClosing() throws URISyntaxException, InterruptedException {
-        final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
-
-        Socket socket = new Socket("ws://0.0.0.0:8080");
-        final boolean[] closed = {false};
-
-        socket.once(Socket.EVENT_ERROR, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                Timer timer = new Timer();
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        values.offer(closed[0]);
-                    }
-                }, 20);
-            }
-        });
-
-        socket.on(Socket.EVENT_CLOSE, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                closed[0] = true;
-            }
-        });
-        socket.open();
-
-        assertThat((Boolean)values.take(), is(true));
+    public void properlyParseHttpUriWithoutPort() throws URISyntaxException {
+        Socket client = new Socket("http://localhost");
+        assertThat(client.port, is(80));
     }
 
+    public void properlyParseHttpsUriWithoutPort() throws URISyntaxException {
+        Socket client = new Socket("http://localhost");
+        assertThat(client.port, is(443));
+    }
+
+    public void properlyParseWssUriWithoutPort() throws URISyntaxException {
+        Socket client = new Socket("http://localhost");
+        assertThat(client.port, is(443));
+    }
+
+    public void properlyParseWssUriWithPort() throws URISyntaxException {
+        Socket client = new Socket("http://localhost:2020");
+        assertThat(client.port, is(2020));
+    }
 }

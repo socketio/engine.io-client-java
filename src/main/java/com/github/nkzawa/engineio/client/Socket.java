@@ -103,7 +103,7 @@ public class Socket extends Emitter {
     private boolean timestampRequests;
     private boolean upgrading;
     private boolean rememberUpgrade;
-    private int port;
+    /*package*/ int port;
     private int policyPort;
     private int prevBufferLen;
     private long pingInterval;
@@ -176,6 +176,9 @@ public class Socket extends Emitter {
                 }
                 if (pieces.length > 1) {
                     opts.port = Integer.parseInt(pieces[pieces.length - 1]);
+                } else if (opts.port == -1) {
+                    // if no port is specified manually, use the protocol default
+                    opts.port = this.secure ? 443 : 80;
                 }
             }
         }
@@ -808,6 +811,8 @@ public class Socket extends Emitter {
                 filteredUpgrades.add(upgrade);
             }
         }
+
+
         return filteredUpgrades;
     }
 
