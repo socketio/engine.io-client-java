@@ -94,7 +94,7 @@ public class Socket extends Emitter {
      */
     public static final int protocol = Parser.protocol;
 
-    public static boolean priorWebsocketSuccess = false;
+    private static boolean priorWebsocketSuccess = false;
 
     private static SSLContext defaultSSLContext;
 
