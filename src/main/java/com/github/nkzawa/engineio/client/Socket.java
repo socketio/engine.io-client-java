@@ -816,6 +816,10 @@ public class Socket extends Emitter {
         return filteredUpgrades;
     }
 
+    public String id() {
+        return this.id;
+    }
+
     private ScheduledExecutorService getHeartbeatScheduler() {
         if (this.heartbeatScheduler == null || this.heartbeatScheduler.isShutdown()) {
             this.heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
