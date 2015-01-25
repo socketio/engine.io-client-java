@@ -3,6 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "engine.io": "1.4.2"
+    "engine.io": "1.5.1"
   }
 }
