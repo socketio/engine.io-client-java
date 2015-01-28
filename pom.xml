@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.nkzawa</groupId>
   <artifactId>engine.io-client</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.4.0</version>
   <packaging>jar</packaging>
   <name>engine.io-client</name>
   <description>Engine.IO Client Library for Java</description>
@@ -30,7 +30,7 @@
     <url>https://github.com/nkzawa/engine.io-client.java</url>
     <connection>scm:git:git://github.com/nkzawa/engine.io-client.java.git</connection>
     <developerConnection>scm:git:git@github.com:nkzawa/engine.io-client.java.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>engine.io-client-0.4.0</tag>
   </scm>
 
   <developers>
