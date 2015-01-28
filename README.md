@@ -6,19 +6,27 @@ This is the Engine.IO Client Library for Java, which is simply ported from the [
 See also: [Socket.IO-client.java](https://github.com/nkzawa/socket.io-client.java)
 
 ## Installation
-The latest artifact is available on Maven Central. Add the following dependency to your `pom.xml`.
+The latest artifact is available on Maven Central. To install manually, please refer dependencies to [pom.xml](https://github.com/nkzawa/engine.io-client.java/blob/master/pom.xml).
+
+### Maven
+Add the following dependency to your `pom.xml`.
 
 ```xml
 <dependencies>
   <dependency>
     <groupId>com.github.nkzawa</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>0.3.1</version>
+    <version>0.4.0</version>
   </dependency>
 </dependencies>
 ```
 
-Or to install it manually, please refer dependencies to [pom.xml](https://github.com/nkzawa/engine.io-client.java/blob/master/pom.xml).
+### Gradle
+Add it as a gradle dependency for Android Studio, in `build.gradle`:
+
+```groovy
+compile 'com.github.nkzawa:engine.io-client:0.4.0'
+```
 
 ## Usage
 Engine.IO-client.java has the similar api with the JS client. You can use `Socket` to connect:
