@@ -4,13 +4,11 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.client.Socket;
 
 import java.net.URISyntaxException;
-import java.util.Map;
 
 public class ConnectionFailure {
 
     public static void main(String[] args) throws URISyntaxException {
-        Map<String, String> env = System.getenv();
-        int port = Integer.parseInt(env.get("PORT"));
+        int port = Integer.parseInt(System.getenv("PORT"));
         port++;
         final Socket socket = new Socket("http://localhost:" + port);
         socket.on(Socket.EVENT_CLOSE, new Emitter.Listener() {

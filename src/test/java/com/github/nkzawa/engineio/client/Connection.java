@@ -6,6 +6,8 @@ import org.junit.Before;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.*;
 
 public abstract class Connection {
@@ -78,6 +80,15 @@ public abstract class Connection {
     }
 
     String[] createEnv() {
-        return new String[] {"DEBUG=engine*", "PORT=" + PORT};
+        Map<String, String> env = new HashMap<String, String>(System.getenv());
+        env.put("DEBUG", "engine*");
+        env.put("PORT", String.valueOf(PORT));
+        String[] _env = new String[env.size()];
+        int i = 0;
+        for (String key : env.keySet()) {
+            _env[i] = key + "=" + env.get(key);
+            i++;
+        }
+        return _env;
     }
 }
