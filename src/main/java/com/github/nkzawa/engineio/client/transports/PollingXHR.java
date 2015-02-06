@@ -168,6 +168,8 @@ public class PollingXHR extends Polling {
                 return;
             }
 
+            xhr.setConnectTimeout(10000);
+
             if (xhr instanceof HttpsURLConnection && this.sslContext != null) {
                 ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
             }
