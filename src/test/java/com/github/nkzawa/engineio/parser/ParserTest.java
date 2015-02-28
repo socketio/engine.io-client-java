@@ -15,19 +15,19 @@ public class ParserTest {
 
     @Test
     public void encodeAsString() {
-        encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback() {
             @Override
-            public void call(String data) {
-                assertThat(data, isA(String.class));
+            public void call(Object data) {
+                assertThat(data, instanceOf(String.class));
             }
         });
     }
 
     @Test
     public void decodeAsPacket() {
-        encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 assertThat(decodePacket(data), isA(Packet.class));
             }
         });
@@ -35,9 +35,9 @@ public class ParserTest {
 
     @Test
     public void noData() {
-        encodePacket(new Packet(Packet.MESSAGE), new EncodeCallback<String>() {
+        encodePacket(new Packet(Packet.MESSAGE), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet p = decodePacket(data);
                 assertThat(p.type, is(Packet.MESSAGE));
                 assertThat(p.data, is(nullValue()));
@@ -47,9 +47,9 @@ public class ParserTest {
 
     @Test
     public void encodeOpenPacket() {
-        encodePacket(new Packet<String>(Packet.OPEN, "{\"some\":\"json\"}"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.OPEN, "{\"some\":\"json\"}"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.OPEN));
                 assertThat(p.data, is("{\"some\":\"json\"}"));
@@ -59,9 +59,9 @@ public class ParserTest {
 
     @Test
     public void encodeClosePacket() {
-        encodePacket(new Packet<String>(Packet.CLOSE), new EncodeCallback<String>() {
+        encodePacket(new Packet(Packet.CLOSE), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet p = decodePacket(data);
                 assertThat(p.type, is(Packet.CLOSE));
             }
@@ -70,9 +70,9 @@ public class ParserTest {
 
     @Test
     public void encodePingPacket() {
-        encodePacket(new Packet<String>(Packet.PING, "1"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.PING, "1"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.PING));
                 assertThat(p.data, is("1"));
@@ -82,9 +82,9 @@ public class ParserTest {
 
     @Test
     public void encodePongPacket() {
-        encodePacket(new Packet<String>(Packet.PONG, "1"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.PONG, "1"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.PONG));
                 assertThat(p.data, is("1"));
@@ -94,9 +94,9 @@ public class ParserTest {
 
     @Test
     public void encodeMessagePacket() {
-        encodePacket(new Packet<String>(Packet.MESSAGE, "aaa"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.MESSAGE, "aaa"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.MESSAGE));
                 assertThat(p.data, is("aaa"));
@@ -106,9 +106,9 @@ public class ParserTest {
 
     @Test
     public void encodeUTF8SpecialCharsMessagePacket() {
-        encodePacket(new Packet<String>(Packet.MESSAGE, "utf8 — string"), new EncodeCallback<String>() {
+        encodePacket(new Packet<String>(Packet.MESSAGE, "utf8 — string"), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.MESSAGE));
                 assertThat(p.data, is("utf8 — string"));
@@ -118,9 +118,9 @@ public class ParserTest {
 
     @Test
     public void encodeMessagePacketCoercingToString() {
-        encodePacket(new Packet<Integer>(Packet.MESSAGE, 1), new EncodeCallback<String>() {
+        encodePacket(new Packet<Integer>(Packet.MESSAGE, 1), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet<String> p = decodePacket(data);
                 assertThat(p.type, is(Packet.MESSAGE));
                 assertThat(p.data, is("1"));
@@ -130,9 +130,9 @@ public class ParserTest {
 
     @Test
     public void encodeUpgradePacket() {
-        encodePacket(new Packet<String>(Packet.UPGRADE), new EncodeCallback<String>() {
+        encodePacket(new Packet(Packet.UPGRADE), new EncodeCallback() {
             @Override
-            public void call(String data) {
+            public void call(Object data) {
                 Packet p = decodePacket(data);
                 assertThat(p.type, is(Packet.UPGRADE));
             }
@@ -177,20 +177,20 @@ public class ParserTest {
     }
 
     @Test
-    public void encodePayloads() {
-        encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback<byte[]>() {
+    public void encodePayloadsAsString() {
+        encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback() {
             @Override
-            public void call(byte[] data) {
-                assertThat(data, isA(byte[].class));
+            public void call(Object data) {
+                assertThat(data, instanceOf(String.class));
             }
         });
     }
 
     @Test
     public void encodeAndDecodePayloads() {
-        encodePayload(new Packet[] {new Packet<String>(Packet.MESSAGE, "a")}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[] {new Packet<String>(Packet.MESSAGE, "a")}, new EncodeCallback() {
             @Override
-            public void call(byte[] data) {
+            public void call(Object data) {
                 decodePayload(data, new DecodePayloadCallback() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
@@ -201,9 +201,9 @@ public class ParserTest {
                 });
             }
         });
-        encodePayload(new Packet[]{new Packet<String>(Packet.MESSAGE, "a"), new Packet(Packet.PING)}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[]{new Packet<String>(Packet.MESSAGE, "a"), new Packet(Packet.PING)}, new EncodeCallback() {
             @Override
-            public void call(byte[] data) {
+            public void call(Object data) {
                 decodePayload(data, new DecodePayloadCallback() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
@@ -222,9 +222,9 @@ public class ParserTest {
 
     @Test
     public void encodeAndDecodeEmptyPayloads() {
-        encodePayload(new Packet[] {}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[] {}, new EncodeCallback() {
             @Override
-            public void call(byte[] data) {
+            public void call(Object data) {
                 decodePayload(data, new DecodePayloadCallback() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
@@ -340,9 +340,9 @@ public class ParserTest {
         for (int i = 0; i < data.length; i++) {
             data[0] = (byte)i;
         }
-        encodePacket(new Packet<byte[]>(Packet.MESSAGE, data), new EncodeCallback<byte[]>() {
+        encodePacket(new Packet<byte[]>(Packet.MESSAGE, data), new EncodeCallback() {
             @Override
-            public void call(byte[] encoded) {
+            public void call(Object encoded) {
                 Packet<byte[]> p = decodePacket(encoded);
                 assertThat(p.type, is(Packet.MESSAGE));
                 assertThat(p.data, is(data));
@@ -364,9 +364,9 @@ public class ParserTest {
         encodePayload(new Packet[]{
             new Packet<byte[]>(Packet.MESSAGE, firstBuffer),
             new Packet<byte[]>(Packet.MESSAGE, secondBuffer),
-        }, new EncodeCallback<byte[]>() {
+        }, new EncodeCallback() {
             @Override
-            public void call(byte[] data) {
+            public void call(Object data) {
                 decodePayload(data, new DecodePayloadCallback() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
@@ -385,12 +385,41 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeMixedBinaryAndStringContents() {
-        final byte[] firstBuffer = new byte[123];
-        for (int i = 0 ; i < firstBuffer.length; i++) {
-            firstBuffer[0] = (byte)i;
+    public void encodeMixedBinaryAndStringContentsAsBase64() {
+        final byte[] data = new byte[5];
+        for (int i = 0 ; i < data.length; i++) {
+            data[i] = (byte)i;
         }
         encodePayload(new Packet[]{
+                new Packet<byte[]>(Packet.MESSAGE, data),
+                new Packet<String>(Packet.MESSAGE, "hello")
+        }, new EncodeCallback() {
+            @Override
+            public void call(Object encoded) {
+                decodePayload(encoded, new DecodePayloadCallback() {
+                    @Override
+                    public boolean call(Packet packet, int index, int total) {
+                        boolean isLast = index + 1 == total;
+                        assertThat(packet.type, is(Packet.MESSAGE));
+                        if (!isLast) {
+                            assertThat((byte[])packet.data, is(data));
+                        } else {
+                            assertThat((String)packet.data, is("hello"));
+                        }
+                        return true;
+                    }
+                });
+            }
+        });
+    }
+
+    @Test
+    public void encodeMixedBinaryAndStringContentsAsBinary() {
+        final byte[] firstBuffer = new byte[123];
+        for (int i = 0 ; i < firstBuffer.length; i++) {
+            firstBuffer[i] = (byte)i;
+        }
+        encodePayloadAsBinary(new Packet[]{
             new Packet<byte[]>(Packet.MESSAGE, firstBuffer),
             new Packet<String>(Packet.MESSAGE, "hello"),
             new Packet<String>(Packet.CLOSE),

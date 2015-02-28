@@ -107,7 +107,7 @@ public class WebSocket extends Transport {
         final WebSocket self = this;
         this.writable = false;
         for (Packet packet : packets) {
-            Parser.encodePacket(packet, new Parser.EncodeCallback() {
+            Parser.encodePacket(packet, true, new Parser.EncodeCallback() {
                 @Override
                 public void call(Object packet) {
                     if (packet instanceof String) {

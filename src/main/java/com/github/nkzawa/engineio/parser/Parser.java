@@ -3,6 +3,7 @@ package com.github.nkzawa.engineio.parser;
 
 import com.github.nkzawa.utf8.UTF8;
 import com.github.nkzawa.utf8.UTF8Exception;
+import org.apache.commons.codec.binary.Base64;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -42,13 +43,15 @@ public class Parser {
         encodePacket(packet, false, callback);
     }
 
-    public static void encodePacket(Packet packet, boolean utf8encode, EncodeCallback callback) {
+    public static void encodePacket(Packet packet, boolean supportsBinary, EncodeCallback callback) {
+        encodePacket(packet, supportsBinary, false, callback);
+    }
+
+    public static void encodePacket(Packet packet, boolean supportsBinary, boolean utf8encode, EncodeCallback callback) {
         if (packet.data instanceof byte[]) {
             @SuppressWarnings("unchecked")
             Packet<byte[]> _packet = packet;
-            @SuppressWarnings("unchecked")
-            EncodeCallback<byte[]> _callback = callback;
-            encodeByteArray(_packet, _callback);
+            encodeByteArray(_packet, supportsBinary, callback);
             return;
         }
 
@@ -63,26 +66,59 @@ public class Parser {
         _callback.call(encoded);
     }
 
-    private static void encodeByteArray(Packet<byte[]> packet, EncodeCallback<byte[]> callback) {
+    private static void encodeByteArray(Packet<byte[]> packet, boolean supportsBinary, EncodeCallback callback) {
+        if (!supportsBinary) {
+            @SuppressWarnings("unchecked")
+            EncodeCallback<String> _callback = callback;
+            encodeBase64Packet(packet, _callback);
+            return;
+        }
+
         byte[] data = packet.data;
         byte[] resultArray = new byte[1 + data.length];
         resultArray[0] = packets.get(packet.type).byteValue();
         System.arraycopy(data, 0, resultArray, 1, data.length);
-        callback.call(resultArray);
+        @SuppressWarnings("unchecked")
+        EncodeCallback<byte[]> _callback = callback;
+        _callback.call(resultArray);
     }
 
-    public static Packet<String> decodePacket(String data) {
+    public static void encodeBase64Packet(Packet<byte[]> packet, EncodeCallback<String> callback) {
+        byte[] data = packet.data;
+        String message = "b" + packets.get(packet.type);
+        message += Base64.encodeBase64String(data);
+        callback.call(message);
+    }
+
+    public static Packet decodePacket(Object data) {
         return decodePacket(data, false);
     }
 
-    public static Packet<String> decodePacket(String data, boolean utf8decode) {
-        int type;
+    public static Packet decodePacket(Object data, boolean utf8decode) {
+        if (data instanceof String) {
+            return decodePacket((String) data, utf8decode);
+        } else {
+            return decodePacket((byte[]) data);
+        }
+    }
+
+    public static Packet decodePacket(String data) {
+        return decodePacket(data, false);
+    }
+
+    public static Packet decodePacket(String data, boolean utf8decode) {
+        char charAt0;
         try {
-            type = Character.getNumericValue(data.charAt(0));
+            charAt0 = data.charAt(0);
         } catch (IndexOutOfBoundsException e) {
-            type = -1;
+            charAt0 = '\u0000';
         }
 
+        if (charAt0 == 'b') {
+            return decodeBase64Packet(data.substring(1));
+        }
+
+        int type = Character.getNumericValue(charAt0);
         if (utf8decode) {
             try {
                 data = UTF8.decode(data);
@@ -102,6 +138,12 @@ public class Parser {
         }
     }
 
+    public static Packet<byte[]> decodeBase64Packet(String msg) {
+        String type = packetslist.get(Character.getNumericValue(msg.charAt(0)));
+        byte[] data = Base64.decodeBase64(msg.substring(1));
+        return new Packet<byte[]>(type, data);
+    }
+
     public static Packet<byte[]> decodePacket(byte[] data) {
         int type = data[0];
         byte[] intArray = new byte[data.length - 1];
@@ -109,7 +151,41 @@ public class Parser {
         return new Packet<byte[]>(packetslist.get(type), intArray);
     }
 
-    public static void encodePayload(Packet[] packets, EncodeCallback<byte[]> callback) {
+    public static void encodePayload(Packet[] packets, EncodeCallback callback) {
+        encodePayload(packets, false, callback);
+    }
+
+    public static void encodePayload(Packet[] packets, boolean supportsBinary, EncodeCallback callback) {
+        if (supportsBinary) {
+            @SuppressWarnings("unchecked")
+            EncodeCallback<byte[]> _callback = callback;
+            encodePayloadAsBinary(packets, _callback);
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        EncodeCallback<String> _callback = callback;
+
+        if (packets.length == 0) {
+            _callback.call("0:");
+            return;
+        }
+
+        final StringBuilder results = new StringBuilder();
+
+        for (Packet packet : packets) {
+            encodePacket(packet, false, true, new EncodeCallback<String>() {
+                @Override
+                public void call(String message) {
+                    results.append(message.length()).append(":").append(message);
+                }
+            });
+        }
+
+        _callback.call(results.toString());
+    }
+
+    public static void encodePayloadAsBinary(Packet[] packets, EncodeCallback<byte[]> callback) {
         if (packets.length == 0) {
             callback.call(new byte[0]);
             return;
@@ -118,7 +194,7 @@ public class Parser {
         final ArrayList<byte[]> results = new ArrayList<byte[]>(packets.length);
 
         for (Packet packet : packets) {
-            encodePacket(packet, true, new EncodeCallback() {
+            encodePacket(packet, true, true, new EncodeCallback() {
                 @Override
                 public void call(Object packet) {
                     if (packet instanceof String) {
@@ -149,7 +225,15 @@ public class Parser {
         callback.call(Buffer.concat(results.toArray(new byte[results.size()][])));
     }
 
-    public static void decodePayload(String data, DecodePayloadCallback<String> callback) {
+    public static void decodePayload(Object data, DecodePayloadCallback callback) {
+        if (data instanceof String) {
+            decodePayload((String)data, callback);
+        } else {
+            decodePayload((byte[])data, callback);
+        }
+    }
+
+    public static void decodePayload(String data, DecodePayloadCallback callback) {
         if (data == null || data.length() == 0) {
             callback.call(err, 0, 1);
             return;
@@ -179,7 +263,7 @@ public class Parser {
                 }
 
                 if (msg.length() != 0) {
-                    Packet<String> packet = decodePacket(msg, true);
+                    Packet packet = decodePacket(msg, true);
                     if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
                         callback.call(err, 0, 1);
                         return;
@@ -246,9 +330,7 @@ public class Parser {
         for (int i = 0; i < total; i++) {
             Object buffer = buffers.get(i);
             if (buffer instanceof String) {
-                @SuppressWarnings("unchecked")
-                DecodePayloadCallback<String> _callback = callback;
-                _callback.call(decodePacket((String)buffer, true), i, total);
+                callback.call(decodePacket((String)buffer, true), i, total);
             } else if (buffer instanceof byte[]) {
                 @SuppressWarnings("unchecked")
                 DecodePayloadCallback<byte[]> _callback = callback;

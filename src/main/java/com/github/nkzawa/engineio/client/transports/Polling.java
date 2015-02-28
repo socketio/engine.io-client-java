@@ -177,7 +177,7 @@ abstract public class Polling extends Transport {
             }
         };
 
-        Parser.encodePayload(packets, new Parser.EncodeCallback<byte[]>() {
+        Parser.encodePayload(packets, true, new Parser.EncodeCallback<byte[]>() {
             @Override
             public void call(byte[] data) {
                 self.doWrite(data, callbackfn);
