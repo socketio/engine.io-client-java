@@ -6,22 +6,31 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
-import org.java_websocket.client.DefaultSSLWebSocketClientFactory;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.drafts.Draft_17;
-import org.java_websocket.handshake.ServerHandshake;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ws.WebSocket.PayloadType;
+import com.squareup.okhttp.ws.WebSocketCall;
+import com.squareup.okhttp.ws.WebSocketListener;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.util.*;
+import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.net.ssl.SSLSocketFactory;
+
+import okio.Buffer;
+import okio.BufferedSource;
+
+import static com.squareup.okhttp.ws.WebSocket.PayloadType.BINARY;
+import static com.squareup.okhttp.ws.WebSocket.PayloadType.TEXT;
 
 public class WebSocket extends Transport {
 
     public static final String NAME = "websocket";
-
-    private WebSocketClient ws;
-
+    private com.squareup.okhttp.ws.WebSocket ws;
 
     public WebSocket(Options opts) {
         super(opts);
@@ -37,70 +46,87 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        try {
-            this.ws = new WebSocketClient(new URI(this.uri()), new Draft_17(), headers, 0) {
-                @Override
-                public void onOpen(final ServerHandshake serverHandshake) {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-                            Iterator<String> it = serverHandshake.iterateHttpFields();
-                            while (it.hasNext()) {
-                                String field = it.next();
-                                if (field == null) continue;
-                                headers.put(field, serverHandshake.getFieldValue(field));
-                            }
-                            self.emit(EVENT_RESPONSE_HEADERS, headers);
-
-                            self.onOpen();
-                        }
-                    });
-                }
-                @Override
-                public void onClose(int i, String s, boolean b) {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            self.onClose();
-                        }
-                    });
-                }
-                @Override
-                public void onMessage(final String s) {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            self.onData(s);
-                        }
-                    });
-                }
-                @Override
-                public void onMessage(final ByteBuffer s) {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            self.onData(s.array());
-                        }
-                    });
-                }
-                @Override
-                public void onError(final Exception e) {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            self.onError("websocket error", e);
-                        }
-                    });
-                }
-            };
-            if (this.sslContext != null) {
-                this.ws.setWebSocketFactory(new DefaultSSLWebSocketClientFactory(this.sslContext));
-            }
-            this.ws.connect();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
+        final OkHttpClient client = new OkHttpClient();
+        if (this.sslContext != null) {
+            SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
+            client.setSslSocketFactory(factory);
         }
+        final Request request = new Request.Builder()
+                .url(uri())
+                .build();
+        WebSocketCall.create(client, request).enqueue(new WebSocketListener() {
+            @Override
+            public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Request request, Response response) throws IOException {
+                ws = webSocket;
+                final Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+                for (int i = 0, size = response.headers().size(); i < size; i++) {
+                    headers.put(response.headers().name(i), response.headers().value(i));
+                }
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        self.emit(EVENT_RESPONSE_HEADERS, headers);
+                        self.onOpen();
+                    }
+                });
+            }
+
+            @Override
+            public void onMessage(BufferedSource payload, PayloadType type) throws IOException {
+                Object data;
+                switch (type) {
+                    case TEXT:
+                        data = payload.readUtf8();
+                        break;
+                    case BINARY:
+                        data = payload.readByteArray();
+                        break;
+                    default:
+                        throw new IllegalStateException("Unknown payload type: " + type);
+                }
+                payload.close();
+                final Object finalData = data;
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (finalData == null) {
+                            return;
+                        }
+                        if (finalData instanceof String) {
+                            self.onData((String) finalData);
+                        } else {
+                            self.onData((byte[]) finalData);
+                        }
+                    }
+                });
+
+            }
+
+            @Override
+            public void onPong(Buffer payload) {
+            }
+
+            @Override
+            public void onClose(int code, String reason) {
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        self.onClose();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(final IOException e) {
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        self.onError("websocket error", e);
+                    }
+                });
+            }
+        });
+        client.getDispatcher().getExecutorService().shutdown();
     }
 
     protected void write(Packet[] packets) {
@@ -110,10 +136,14 @@ public class WebSocket extends Transport {
             Parser.encodePacket(packet, new Parser.EncodeCallback() {
                 @Override
                 public void call(Object packet) {
-                    if (packet instanceof String) {
-                        self.ws.send((String) packet);
-                    } else if (packet instanceof byte[]) {
-                        self.ws.send((byte[]) packet);
+                    try {
+                        if (packet instanceof String) {
+                            self.ws.sendMessage(TEXT, new Buffer().writeUtf8((String) packet));
+                        } else if (packet instanceof byte[]) {
+                            self.ws.sendMessage(BINARY, new Buffer().write((byte[]) packet));
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             });
@@ -139,7 +169,11 @@ public class WebSocket extends Transport {
 
     protected void doClose() {
         if (this.ws != null) {
-            this.ws.close();
+            try {
+                this.ws.close(1000, "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
