@@ -8,6 +8,7 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.OkHttpClient;
 import org.json.JSONException;
 
 import javax.net.ssl.SSLContext;
@@ -121,6 +122,7 @@ public class Socket extends Emitter {
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
     private SSLContext sslContext;
+    private OkHttpClient webSocketClient;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -185,6 +187,7 @@ public class Socket extends Emitter {
 
         this.secure = opts.secure;
         this.sslContext = opts.sslContext != null ? opts.sslContext : defaultSSLContext;
+        this.webSocketClient = opts.webSocketClient;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
         this.query = opts.query != null ?
@@ -245,6 +248,7 @@ public class Socket extends Emitter {
 
         Transport.Options opts = new Transport.Options();
         opts.sslContext = this.sslContext;
+        opts.webSocketClient = this.webSocketClient;
         opts.hostname = this.hostname;
         opts.port = this.port;
         opts.secure = this.secure;
@@ -710,7 +714,7 @@ public class Socket extends Emitter {
                     final Listener[] cleanupAndClose = new Listener[1];
                     cleanupAndClose[0] = new Listener() {
                         @Override
-                        public void call(Object ...args) {
+                        public void call(Object... args) {
                             self.off(EVENT_UPGRADE, cleanupAndClose[0]);
                             self.off(EVENT_UPGRADE_ERROR, cleanupAndClose[0]);
                             close.run();

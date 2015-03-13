@@ -10,6 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(JUnit4.class)
 public class BinaryWSTest extends Connection {
