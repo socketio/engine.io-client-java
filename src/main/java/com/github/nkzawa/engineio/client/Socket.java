@@ -305,6 +305,8 @@ public class Socket extends Emitter {
         final Transport[] transport = new Transport[] {this.createTransport(name)};
         final boolean[] failed = new boolean[] {false};
         final Socket self = this;
+        
+        self.emit(EVENT_TRANSPORT, transport);
 
         Socket.priorWebsocketSuccess = false;
 
