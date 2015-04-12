@@ -6,6 +6,7 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
@@ -59,8 +60,9 @@ public class WebSocket extends Transport {
             public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Request request, Response response) throws IOException {
                 ws = webSocket;
                 final Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-                for (int i = 0, size = response.headers().size(); i < size; i++) {
-                    headers.put(response.headers().name(i), response.headers().value(i));
+                Headers responseHeaders = response.headers();
+                for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                    headers.put(responseHeaders.name(i), responseHeaders.value(i));
                 }
                 EventThread.exec(new Runnable() {
                     @Override
@@ -72,8 +74,8 @@ public class WebSocket extends Transport {
             }
 
             @Override
-            public void onMessage(BufferedSource payload, PayloadType type) throws IOException {
-                Object data;
+            public void onMessage(BufferedSource payload, final PayloadType type) throws IOException {
+                Object data = null;
                 switch (type) {
                     case TEXT:
                         data = payload.readUtf8();
@@ -82,7 +84,12 @@ public class WebSocket extends Transport {
                         data = payload.readByteArray();
                         break;
                     default:
-                        throw new IllegalStateException("Unknown payload type: " + type);
+                        EventThread.exec(new Runnable() {
+                            @Override
+                            public void run() {
+                                self.onError("Unknown payload type: " + type, new IllegalStateException());
+                            }
+                        });
                 }
                 payload.close();
                 final Object finalData = data;
@@ -143,7 +150,7 @@ public class WebSocket extends Transport {
                             self.ws.sendMessage(BINARY, new Buffer().write((byte[]) packet));
                         }
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        self.onError("websocket error", e);
                     }
                 }
             });
@@ -172,7 +179,7 @@ public class WebSocket extends Transport {
             try {
                 this.ws.close(1000, "");
             } catch (IOException e) {
-                e.printStackTrace();
+                onError("doClose error", e);
             }
         }
     }
