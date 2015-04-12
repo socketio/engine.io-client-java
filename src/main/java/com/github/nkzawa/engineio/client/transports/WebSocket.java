@@ -32,6 +32,7 @@ public class WebSocket extends Transport {
 
     public static final String NAME = "websocket";
     private com.squareup.okhttp.ws.WebSocket ws;
+    private WebSocketCall wsCall;
 
     public WebSocket(Options opts) {
         super(opts);
@@ -52,10 +53,12 @@ public class WebSocket extends Transport {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
             client.setSslSocketFactory(factory);
         }
-        final Request request = new Request.Builder()
-                .url(uri())
-                .build();
-        WebSocketCall.create(client, request).enqueue(new WebSocketListener() {
+        Request.Builder builder = new Request.Builder().url(uri());
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.addHeader(entry.getKey(), entry.getValue());
+        }
+        final Request request = builder.build();
+        (wsCall = WebSocketCall.create(client, request)).enqueue(new WebSocketListener() {
             @Override
             public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Request request, Response response) throws IOException {
                 ws = webSocket;
@@ -175,12 +178,17 @@ public class WebSocket extends Transport {
     }
 
     protected void doClose() {
-        if (this.ws != null) {
+        if (wsCall != null) {
+            wsCall.cancel();
+            wsCall = null;
+        }
+        if (ws != null) {
             try {
-                this.ws.close(1000, "");
+                ws.close(1000, "");
             } catch (IOException e) {
                 onError("doClose error", e);
             }
+            ws = null;
         }
     }
 
