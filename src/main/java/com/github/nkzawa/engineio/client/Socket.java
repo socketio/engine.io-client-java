@@ -8,6 +8,8 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.OkHttpClient;
+
 import org.json.JSONException;
 
 import javax.net.ssl.SSLContext;
@@ -121,6 +123,7 @@ public class Socket extends Emitter {
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
     private SSLContext sslContext;
+    private OkHttpClient okHttpClient;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -197,6 +200,7 @@ public class Socket extends Emitter {
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
+        this.okHttpClient = opts.okHttpClient;
     }
 
     /**
@@ -254,6 +258,7 @@ public class Socket extends Emitter {
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
         opts.socket = this;
+        opts.okHttpClient = this.okHttpClient;
 
         if (WebSocket.NAME.equals(name)) {
             return new WebSocket(opts);
