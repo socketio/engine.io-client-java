@@ -1,14 +1,13 @@
 package com.github.nkzawa.engineio.client;
 
 import com.github.nkzawa.emitter.Emitter;
+import com.squareup.okhttp.OkHttpClient;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,14 +22,15 @@ import static org.junit.Assert.assertThat;
 @RunWith(JUnit4.class)
 public class SSLConnectionTest extends Connection {
 
+    static HostnameVerifier hostnameVerifier = new javax.net.ssl.HostnameVerifier(){
+        public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
+            return hostname.equals("localhost");
+        }
+    };
+
     static {
         // for test on localhost
-        javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
-                new javax.net.ssl.HostnameVerifier(){
-                    public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
-                        return hostname.equals("localhost");
-                    }
-                });
+        javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(hostnameVerifier);
     }
 
     private Socket socket;
@@ -98,6 +98,9 @@ public class SSLConnectionTest extends Connection {
 
         Socket.Options opts = createOptions();
         opts.sslContext = createSSLContext();
+        OkHttpClient wsClient = new OkHttpClient();
+        wsClient.setHostnameVerifier(hostnameVerifier);
+        opts.webSocketClient = wsClient;
         socket = new Socket(opts);
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override

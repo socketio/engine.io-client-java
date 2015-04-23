@@ -5,6 +5,7 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.OkHttpClient;
 
 import javax.net.ssl.SSLContext;
 import java.util.Map;
@@ -144,6 +145,7 @@ public abstract class Transport extends Emitter {
         public int policyPort = -1;
         public Map<String, String> query;
         public SSLContext sslContext;
+        public OkHttpClient webSocketClient;
         protected Socket socket;
     }
 }

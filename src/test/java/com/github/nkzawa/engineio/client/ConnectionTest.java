@@ -159,11 +159,11 @@ public class ConnectionTest extends Connection {
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                final boolean[] upgradError = new boolean[] {false};
+                final boolean[] upgradeError = new boolean[] {false};
                 socket.on(Socket.EVENT_UPGRADE_ERROR, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
-                        upgradError[0] = true;
+                        upgradeError[0] = true;
                     }
                 }).on(Socket.EVENT_UPGRADING, new Emitter.Listener() {
                     @Override
@@ -171,7 +171,7 @@ public class ConnectionTest extends Connection {
                         socket.on(Socket.EVENT_CLOSE, new Emitter.Listener() {
                             @Override
                             public void call(Object... args) {
-                                values.offer(upgradError[0]);
+                                values.offer(upgradeError[0]);
                             }
                         });
                         socket.close();
