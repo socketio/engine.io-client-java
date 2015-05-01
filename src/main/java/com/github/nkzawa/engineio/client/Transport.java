@@ -5,7 +5,6 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
-import com.squareup.okhttp.OkHttpClient;
 
 import javax.net.ssl.SSLContext;
 import java.util.Map;
@@ -43,7 +42,6 @@ public abstract class Transport extends Emitter {
     protected String timestampParam;
     protected SSLContext sslContext;
     protected Socket socket;
-    protected OkHttpClient okHttpClient;
 
     protected ReadyState readyState;
 
@@ -57,7 +55,6 @@ public abstract class Transport extends Emitter {
         this.timestampRequests = opts.timestampRequests;
         this.sslContext = opts.sslContext;
         this.socket = opts.socket;
-        this.okHttpClient = opts.okHttpClient;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -147,7 +144,6 @@ public abstract class Transport extends Emitter {
         public int policyPort = -1;
         public Map<String, String> query;
         public SSLContext sslContext;
-        public OkHttpClient okHttpClient;
         protected Socket socket;
     }
 }

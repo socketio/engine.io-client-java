@@ -48,7 +48,7 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        final OkHttpClient client = this.okHttpClient != null ? this.okHttpClient : new OkHttpClient();
+        final OkHttpClient client = new OkHttpClient();
         if (this.sslContext != null) {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
             client.setSslSocketFactory(factory);
