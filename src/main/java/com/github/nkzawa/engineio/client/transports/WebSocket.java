@@ -53,6 +53,9 @@ public class WebSocket extends Transport {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
             client.setSslSocketFactory(factory);
         }
+        if (this.hostnameVerifier != null) {
+            client.setHostnameVerifier(this.hostnameVerifier);
+        }
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             builder.addHeader(entry.getKey(), entry.getValue());

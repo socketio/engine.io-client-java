@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -23,15 +24,11 @@ import static org.junit.Assert.assertThat;
 @RunWith(JUnit4.class)
 public class SSLConnectionTest extends Connection {
 
-    static {
-        // for test on localhost
-        javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier(
-                new javax.net.ssl.HostnameVerifier(){
-                    public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
-                        return hostname.equals("localhost");
-                    }
-                });
-    }
+    static HostnameVerifier hostnameVerifier = new javax.net.ssl.HostnameVerifier(){
+        public boolean verify(String hostname, javax.net.ssl.SSLSession sslSession) {
+            return hostname.equals("localhost");
+        }
+    };
 
     private Socket socket;
 
@@ -74,6 +71,7 @@ public class SSLConnectionTest extends Connection {
 
         Socket.Options opts = createOptions();
         opts.sslContext = createSSLContext();
+        opts.hostnameVerifier = SSLConnectionTest.hostnameVerifier;
         socket = new Socket(opts);
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
@@ -98,6 +96,7 @@ public class SSLConnectionTest extends Connection {
 
         Socket.Options opts = createOptions();
         opts.sslContext = createSSLContext();
+        opts.hostnameVerifier = SSLConnectionTest.hostnameVerifier;
         socket = new Socket(opts);
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
@@ -127,7 +126,9 @@ public class SSLConnectionTest extends Connection {
         final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         Socket.setDefaultSSLContext(createSSLContext());
-        socket = new Socket(createOptions());
+        Socket.Options opts = createOptions();
+        opts.hostnameVerifier = SSLConnectionTest.hostnameVerifier;
+        socket = new Socket(opts);
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
