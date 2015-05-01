@@ -260,13 +260,18 @@ public class Socket extends Emitter {
         opts.socket = this;
         opts.okHttpClient = this.okHttpClient;
 
+        Transport transport;
         if (WebSocket.NAME.equals(name)) {
-            return new WebSocket(opts);
+            transport = new WebSocket(opts);
         } else if (Polling.NAME.equals(name)) {
-            return new PollingXHR(opts);
+            transport = new PollingXHR(opts);
+        } else {
+            throw new RuntimeException();
         }
 
-        throw new RuntimeException();
+        this.emit(EVENT_TRANSPORT, transport);
+
+        return transport;
     }
 
     private void setTransport(Transport transport) {
@@ -279,8 +284,6 @@ public class Socket extends Emitter {
         }
 
         this.transport = transport;
-
-        self.emit(EVENT_TRANSPORT, transport);
 
         transport.on(Transport.EVENT_DRAIN, new Listener() {
             @Override
