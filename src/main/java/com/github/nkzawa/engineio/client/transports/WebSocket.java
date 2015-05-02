@@ -13,17 +13,15 @@ import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ws.WebSocket.PayloadType;
 import com.squareup.okhttp.ws.WebSocketCall;
 import com.squareup.okhttp.ws.WebSocketListener;
+import okio.Buffer;
+import okio.BufferedSource;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
-
-import javax.net.ssl.SSLSocketFactory;
-
-import okio.Buffer;
-import okio.BufferedSource;
 
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.BINARY;
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.TEXT;
@@ -40,10 +38,6 @@ public class WebSocket extends Transport {
     }
 
     protected void doOpen() {
-        if (!this.check()) {
-            return;
-        }
-
         Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
@@ -189,7 +183,9 @@ public class WebSocket extends Transport {
             try {
                 ws.close(1000, "");
             } catch (IOException e) {
-                onError("doClose error", e);
+                onError("websocket error", e);
+            } catch (IllegalStateException e) {
+                // do nothing
             }
             ws = null;
         }
@@ -219,10 +215,4 @@ public class WebSocket extends Transport {
 
         return schema + "://" + this.hostname + port + this.path + _query;
     }
-
-    private boolean check() {
-        // for checking if the websocket is available. Should we remove?
-        return true;
-    }
-
 }
