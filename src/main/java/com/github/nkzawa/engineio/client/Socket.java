@@ -340,7 +340,7 @@ public class Socket extends Emitter {
                             logger.fine(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
-                            if (null == transport) return;
+                            if (null == transport[0]) return;
                             Socket.priorWebsocketSuccess = WebSocket.NAME.equals(transport[0].name);
 
                             logger.fine(String.format("pausing current transport '%s'", self.transport.name));
