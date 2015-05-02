@@ -1,3 +1,11 @@
+0.5.0 / 2015-05-02
+==================
+
+* replace WebSocket client with OkHttp WebSocket [b95505017]
+* add the hostnameVerifier option [b95505017]
+* fix EVENT_TRANSPORT event to fire upon a transport creation
+* fix invalid transport null check
+
 0.4.1 / 2015-02-08
 ==================
 
