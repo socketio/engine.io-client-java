@@ -98,6 +98,7 @@ public class Socket extends Emitter {
     private static boolean priorWebsocketSuccess = false;
 
     private static SSLContext defaultSSLContext;
+    private static HostnameVerifier defaultHostnameVerifier;
 
     private boolean secure;
     private boolean upgrade;
@@ -129,6 +130,10 @@ public class Socket extends Emitter {
 
     public static void setDefaultSSLContext(SSLContext sslContext) {
         defaultSSLContext = sslContext;
+    }
+
+    public static void setDefaultHostnameVerifier(HostnameVerifier hostnameVerifier) {
+        defaultHostnameVerifier = hostnameVerifier;
     }
 
     public Socket() {
@@ -199,7 +204,7 @@ public class Socket extends Emitter {
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
-        this.hostnameVerifier = opts.hostnameVerifier;
+        this.hostnameVerifier = opts.hostnameVerifier != null ? opts.hostnameVerifier : defaultHostnameVerifier;
     }
 
     /**

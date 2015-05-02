@@ -126,9 +126,8 @@ public class SSLConnectionTest extends Connection {
         final BlockingQueue<Object> values = new LinkedBlockingQueue<Object>();
 
         Socket.setDefaultSSLContext(createSSLContext());
-        Socket.Options opts = createOptions();
-        opts.hostnameVerifier = SSLConnectionTest.hostnameVerifier;
-        socket = new Socket(opts);
+        Socket.setDefaultHostnameVerifier(SSLConnectionTest.hostnameVerifier);
+        socket = new Socket(createOptions());
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
