@@ -6,6 +6,7 @@ import com.github.nkzawa.thread.EventThread;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request.Builder;
@@ -47,6 +48,7 @@ public class PollingXHR extends Polling {
         opts.uri = this.uri();
         opts.sslContext = this.sslContext;
         opts.hostnameVerifier = this.hostnameVerifier;
+        opts.networkInterceptor = this.networkInterceptor;
 
         Request req = new Request(opts);
 
@@ -163,6 +165,7 @@ public class PollingXHR extends Polling {
         private Response response;
         private Call requestCall;
         private HostnameVerifier hostnameVerifier;
+        private Interceptor networkInterceptor;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
@@ -170,6 +173,7 @@ public class PollingXHR extends Polling {
             this.data = opts.data;
             this.sslContext = opts.sslContext;
             this.hostnameVerifier = opts.hostnameVerifier;
+            this.networkInterceptor = opts.networkInterceptor;
         }
 
         public void create() {
@@ -181,6 +185,9 @@ public class PollingXHR extends Polling {
             }
             if (this.hostnameVerifier != null) {
                 okHttpClient.setHostnameVerifier(this.hostnameVerifier);
+            }
+            if (this.networkInterceptor != null) {
+                okHttpClient.networkInterceptors().add(networkInterceptor);
             }
 
             Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -299,6 +306,7 @@ public class PollingXHR extends Polling {
             public byte[] data;
             public SSLContext sslContext;
             public HostnameVerifier hostnameVerifier;
+            public Interceptor networkInterceptor;
         }
     }
 }

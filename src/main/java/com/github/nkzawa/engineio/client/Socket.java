@@ -8,6 +8,8 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.Interceptor;
+
 import org.json.JSONException;
 
 import javax.net.ssl.HostnameVerifier;
@@ -124,6 +126,7 @@ public class Socket extends Emitter {
     private Future pingIntervalTimer;
     private SSLContext sslContext;
     private HostnameVerifier hostnameVerifier;
+    private Interceptor networkInterceptor;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -205,6 +208,7 @@ public class Socket extends Emitter {
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
         this.hostnameVerifier = opts.hostnameVerifier != null ? opts.hostnameVerifier : defaultHostnameVerifier;
+        this.networkInterceptor = opts.networkInterceptor;
     }
 
     /**
@@ -263,6 +267,7 @@ public class Socket extends Emitter {
         opts.policyPort = this.policyPort;
         opts.socket = this;
         opts.hostnameVerifier = this.hostnameVerifier;
+        opts.networkInterceptor = this.networkInterceptor;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {

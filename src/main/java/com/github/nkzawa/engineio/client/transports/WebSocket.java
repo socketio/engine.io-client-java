@@ -50,6 +50,9 @@ public class WebSocket extends Transport {
         if (this.hostnameVerifier != null) {
             client.setHostnameVerifier(this.hostnameVerifier);
         }
+        if (this.networkInterceptor != null) {
+            client.networkInterceptors().add(networkInterceptor);
+        }
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             builder.addHeader(entry.getKey(), entry.getValue());
