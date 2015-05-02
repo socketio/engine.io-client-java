@@ -6,6 +6,7 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.util.Map;
 
@@ -42,6 +43,7 @@ public abstract class Transport extends Emitter {
     protected String timestampParam;
     protected SSLContext sslContext;
     protected Socket socket;
+    protected HostnameVerifier hostnameVerifier;
 
     protected ReadyState readyState;
 
@@ -55,6 +57,7 @@ public abstract class Transport extends Emitter {
         this.timestampRequests = opts.timestampRequests;
         this.sslContext = opts.sslContext;
         this.socket = opts.socket;
+        this.hostnameVerifier = opts.hostnameVerifier;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -144,6 +147,7 @@ public abstract class Transport extends Emitter {
         public int policyPort = -1;
         public Map<String, String> query;
         public SSLContext sslContext;
+        public HostnameVerifier hostnameVerifier;
         protected Socket socket;
     }
 }

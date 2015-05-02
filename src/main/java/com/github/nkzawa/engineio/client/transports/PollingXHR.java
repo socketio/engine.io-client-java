@@ -4,6 +4,7 @@ package com.github.nkzawa.engineio.client.transports;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.thread.EventThread;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import java.io.*;
@@ -37,6 +38,7 @@ public class PollingXHR extends Polling {
         }
         opts.uri = this.uri();
         opts.sslContext = this.sslContext;
+        opts.hostnameVerifier = this.hostnameVerifier;
 
         Request req = new Request(opts);
 
@@ -148,12 +150,14 @@ public class PollingXHR extends Polling {
 
         private SSLContext sslContext;
         private HttpURLConnection xhr;
+        private HostnameVerifier hostnameVerifier;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
             this.sslContext = opts.sslContext;
+            this.hostnameVerifier = opts.hostnameVerifier;
         }
 
         public void create() {
@@ -170,8 +174,13 @@ public class PollingXHR extends Polling {
 
             xhr.setConnectTimeout(10000);
 
-            if (xhr instanceof HttpsURLConnection && this.sslContext != null) {
-                ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
+            if (xhr instanceof HttpsURLConnection) {
+                if (this.sslContext != null) {
+                    ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
+                }
+                if (this.hostnameVerifier != null) {
+                    ((HttpsURLConnection)xhr).setHostnameVerifier(this.hostnameVerifier);
+                }
             }
 
             Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
@@ -317,6 +326,7 @@ public class PollingXHR extends Polling {
             public String method;
             public byte[] data;
             public SSLContext sslContext;
+            public HostnameVerifier hostnameVerifier;
         }
     }
 }

@@ -10,6 +10,7 @@ import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
 import org.json.JSONException;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -121,6 +122,7 @@ public class Socket extends Emitter {
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
     private SSLContext sslContext;
+    private HostnameVerifier hostnameVerifier;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -197,6 +199,7 @@ public class Socket extends Emitter {
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
+        this.hostnameVerifier = opts.hostnameVerifier;
     }
 
     /**
@@ -254,6 +257,7 @@ public class Socket extends Emitter {
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
         opts.socket = this;
+        opts.hostnameVerifier = this.hostnameVerifier;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {
