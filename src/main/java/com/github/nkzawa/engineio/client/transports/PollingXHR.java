@@ -3,19 +3,27 @@ package com.github.nkzawa.engineio.client.transports;
 
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.Call;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request.Builder;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import java.io.*;
-import java.net.HttpURLConnection;
+import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+
+import static com.squareup.okhttp.internal.Util.closeQuietly;
+
 
 public class PollingXHR extends Polling {
 
@@ -141,6 +149,8 @@ public class PollingXHR extends Polling {
         public static final String EVENT_ERROR = "error";
         public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
         public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
+        private static final String BINARY_CONTENT_TYPE = "application/octet-stream";
+        private static final MediaType BINARY_MEDIA_TYPE = MediaType.parse(BINARY_CONTENT_TYPE);
 
         private String method;
         private String uri;
@@ -149,7 +159,9 @@ public class PollingXHR extends Polling {
         private byte[] data;
 
         private SSLContext sslContext;
-        private HttpURLConnection xhr;
+        private OkHttpClient okHttpClient = new OkHttpClient();
+        private Response response;
+        private Call requestCall;
         private HostnameVerifier hostnameVerifier;
 
         public Request(Options opts) {
@@ -162,79 +174,66 @@ public class PollingXHR extends Polling {
 
         public void create() {
             final Request self = this;
-            try {
-                logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
-                URL url = new URL(this.uri);
-                xhr = (HttpURLConnection)url.openConnection();
-                xhr.setRequestMethod(this.method);
-            } catch (IOException e) {
-                this.onError(e);
-                return;
+            logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
+            okHttpClient.setConnectTimeout(10000, TimeUnit.MILLISECONDS);
+            if (this.sslContext != null) {
+                okHttpClient.setSocketFactory(this.sslContext.getSocketFactory());
+            }
+            if (this.hostnameVerifier != null) {
+                okHttpClient.setHostnameVerifier(this.hostnameVerifier);
             }
 
-            xhr.setConnectTimeout(10000);
-
-            if (xhr instanceof HttpsURLConnection) {
-                if (this.sslContext != null) {
-                    ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
-                }
-                if (this.hostnameVerifier != null) {
-                    ((HttpsURLConnection)xhr).setHostnameVerifier(this.hostnameVerifier);
-                }
-            }
-
-            Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-
+            Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            MediaType mediaType = null;
             if ("POST".equals(this.method)) {
-                xhr.setDoOutput(true);
-                headers.put("Content-type", "application/octet-stream");
+                headers.put("Content-type", BINARY_CONTENT_TYPE);
+                mediaType = BINARY_MEDIA_TYPE;
             }
 
             self.onRequestHeaders(headers);
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                xhr.setRequestProperty(header.getKey(), header.getValue());
-            }
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    OutputStream output = null;
-                    try {
-                        if (self.data != null) {
-                            xhr.setFixedLengthStreamingMode(self.data.length);
-                            output = new BufferedOutputStream(xhr.getOutputStream());
-                            output.write(self.data);
-                            output.flush();
-                        }
 
-                        Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+            try {
+                final Builder requestBuilder = new Builder();
+                for (Map.Entry<String, String> header : headers.entrySet()) {
+                    requestBuilder.addHeader(header.getKey(), header.getValue());
+                }
+                final com.squareup.okhttp.Request request = requestBuilder
+                        .url(new URL(self.uri))
+                        .method(self.method, (self.data != null) ?
+                                RequestBody.create(mediaType, self.data) : null)
+                        .build();
 
-                        Map<String, List<String>> xhrHeaderFields = xhr.getHeaderFields();
-                        if(xhrHeaderFields != null) {
-                            for (String key : xhrHeaderFields.keySet()) {
-                                if (key == null) continue;
-                                headers.put(key, xhr.getHeaderField(key));
-                            }
+                requestCall = okHttpClient.newCall(request);
+                requestCall.enqueue(new Callback() {
+                    @Override
+                    public void onFailure(com.squareup.okhttp.Request request, IOException e) {
+                        self.onError(e);
+                    }
+
+                    @Override
+                    public void onResponse(Response response) throws IOException {
+                        self.response = response;
+                        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                        Headers responseHeaders = response.headers();
+                        for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                            headers.put(responseHeaders.name(i), responseHeaders.value(i));
                         }
 
                         self.onResponseHeaders(headers);
 
-                        final int statusCode = xhr.getResponseCode();
-                        if (HttpURLConnection.HTTP_OK == statusCode) {
+                        final int statusCode = response.code();
+                        if (statusCode == 200) {
                             self.onLoad();
                         } else {
                             self.onError(new IOException(Integer.toString(statusCode)));
                         }
-                    } catch (IOException e) {
-                        self.onError(e);
-                    } finally {
-                        try {
-                            if (output != null) output.close();
-                        } catch (IOException e) {}
                     }
-                }
-            }).start();
+                });
+            } catch (IOException e) {
+                self.onError(e);
+            }
         }
 
         private void onSuccess() {
@@ -266,54 +265,27 @@ public class PollingXHR extends Polling {
         }
 
         private void cleanup() {
-            if (xhr == null) {
-                return;
+            if (requestCall != null) {
+                requestCall.cancel();
+                requestCall = null;
             }
-
-            xhr.disconnect();
-            xhr = null;
+            if (response != null) {
+                closeQuietly(response.body());
+                response = null;
+            }
         }
 
         private void onLoad() {
-            InputStream input = null;
-            BufferedReader reader = null;
-            String contentType = xhr.getContentType();
+            String contentType = response.body().contentType().toString();
+
             try {
-                if ("application/octet-stream".equalsIgnoreCase(contentType)) {
-                    input = new BufferedInputStream(this.xhr.getInputStream());
-                    List<byte[]> buffers = new ArrayList<byte[]>();
-                    int capacity = 0;
-                    int len = 0;
-                    byte[] buffer = new byte[1024];
-                    while ((len = input.read(buffer)) > 0) {
-                        byte[] _buffer = new byte[len];
-                        System.arraycopy(buffer, 0, _buffer, 0, len);
-                        buffers.add(_buffer);
-                        capacity += len;
-                    }
-                    ByteBuffer data = ByteBuffer.allocate(capacity);
-                    for (byte[] b : buffers) {
-                        data.put(b);
-                    }
-                    this.onData(data.array());
+                if (BINARY_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+                    this.onData(response.body().bytes());
                 } else {
-                    String line;
-                    StringBuilder data = new StringBuilder();
-                    reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                    while ((line = reader.readLine()) != null) {
-                        data.append(line);
-                    }
-                    this.onData(data.toString());
+                    this.onData(response.body().string());
                 }
             } catch (IOException e) {
                 this.onError(e);
-            } finally {
-                try {
-                    if (input != null) input.close();
-                } catch (IOException e) {}
-                try {
-                    if (reader != null) reader.close();
-                } catch (IOException e) {}
             }
         }
         public void abort() {
