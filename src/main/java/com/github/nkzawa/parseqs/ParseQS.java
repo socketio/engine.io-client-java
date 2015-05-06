@@ -26,7 +26,7 @@ public class ParseQS {
         for (String _pair : pairs) {
             String[] pair = _pair.split("=");
             qry.put(Global.decodeURIComponent(pair[0]),
-                    pair.length > 0 ? Global.decodeURIComponent(pair[1]) : "");
+                    pair.length > 1 ? Global.decodeURIComponent(pair[1]) : "");
         }
         return qry;
     }

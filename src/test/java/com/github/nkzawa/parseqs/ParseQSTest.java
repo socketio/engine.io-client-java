@@ -25,6 +25,12 @@ public class ParseQSTest {
 
         queryObject = ParseQS.decode("india=new%20delhi");
         assertThat(queryObject.get("india"), is("new delhi"));
+
+        queryObject = ParseQS.decode("woot=");
+        assertThat(queryObject.get("woot"), is(""));
+
+        queryObject = ParseQS.decode("woot");
+        assertThat(queryObject.get("woot"), is(""));
     }
 
     @Test
