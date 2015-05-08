@@ -5,6 +5,7 @@ import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.thread.EventThread;
+import com.squareup.okhttp.Interceptor;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -44,6 +45,7 @@ public abstract class Transport extends Emitter {
     protected SSLContext sslContext;
     protected Socket socket;
     protected HostnameVerifier hostnameVerifier;
+    protected Interceptor networkInterceptor;
 
     protected ReadyState readyState;
 
@@ -58,6 +60,7 @@ public abstract class Transport extends Emitter {
         this.sslContext = opts.sslContext;
         this.socket = opts.socket;
         this.hostnameVerifier = opts.hostnameVerifier;
+        this.networkInterceptor = opts.networkInterceptor;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -149,5 +152,6 @@ public abstract class Transport extends Emitter {
         public SSLContext sslContext;
         public HostnameVerifier hostnameVerifier;
         protected Socket socket;
+        public Interceptor networkInterceptor;
     }
 }
