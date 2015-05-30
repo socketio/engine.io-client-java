@@ -57,7 +57,7 @@ public class WebSocket extends Transport {
         final Request request = builder.build();
         (wsCall = WebSocketCall.create(client, request)).enqueue(new WebSocketListener() {
             @Override
-            public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Request request, Response response) throws IOException {
+            public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Response response) {
                 ws = webSocket;
                 final Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
                 Headers responseHeaders = response.headers();
@@ -124,11 +124,11 @@ public class WebSocket extends Transport {
             }
 
             @Override
-            public void onFailure(final IOException e) {
+            public void onFailure(final IOException e, final Response response) {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        self.onError("websocket error", e);
+                        self.onError("websocket error " + response.toString(), e);
                     }
                 });
             }
