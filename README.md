@@ -16,7 +16,7 @@ Add the following dependency to your `pom.xml`.
   <dependency>
     <groupId>com.github.nkzawa</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
   </dependency>
 </dependencies>
 ```
@@ -25,7 +25,7 @@ Add the following dependency to your `pom.xml`.
 Add it as a gradle dependency for Android Studio, in `build.gradle`:
 
 ```groovy
-compile 'com.github.nkzawa:engine.io-client:0.5.0'
+compile 'com.github.nkzawa:engine.io-client:0.5.1'
 ```
 
 ## Usage
