@@ -128,7 +128,7 @@ public class WebSocket extends Transport {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        self.onError("websocket error " + response.toString(), e);
+                        self.onError("websocket error", e);
                     }
                 });
             }
