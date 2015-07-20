@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.BINARY;
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.TEXT;
@@ -29,6 +30,9 @@ import static com.squareup.okhttp.ws.WebSocket.PayloadType.TEXT;
 public class WebSocket extends Transport {
 
     public static final String NAME = "websocket";
+
+    private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
+
     private com.squareup.okhttp.ws.WebSocket ws;
     private WebSocketCall wsCall;
 
@@ -150,7 +154,7 @@ public class WebSocket extends Transport {
                             self.ws.sendMessage(BINARY, new Buffer().write((byte[]) packet));
                         }
                     } catch (IOException e) {
-                        self.onError("websocket error", e);
+                        logger.fine("websocket closed before onclose event");
                     }
                 }
             });
@@ -183,9 +187,9 @@ public class WebSocket extends Transport {
             try {
                 ws.close(1000, "");
             } catch (IOException e) {
-                onError("websocket error", e);
+                // websocket already closed
             } catch (IllegalStateException e) {
-                // do nothing
+                // websocket already closed
             }
             ws = null;
         }
