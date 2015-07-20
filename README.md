@@ -117,17 +117,17 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
       @Override
       public void call(Object... args) {
         @SuppressWarnings("unchecked")
-        Map<String, String> headers = (Map<String, String>)args[0];
-        // send cookies to server.
-        headers.put("Cookie", "foo=1;");
+        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+        // send cookie value to server.
+        headers.put("Cookie", Arrays.asList("foo=1;"));
       }
     }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
       @Override
       public void call(Object... args) {
         @SuppressWarnings("unchecked")
-        Map<String, String> headers = (Map<String, String>)args[0];
-        // get cookies from server.
-        String cookie = headers.get("Set-Cookie");
+        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+        // receive cookie value from server.
+        String cookie = headers.get("Set-Cookie").get(0);
       }
     });
   }
