@@ -1,3 +1,9 @@
+0.6.0 / 2015-08-09
+==================
+
+* change to take all HTTP HEADER values as lists
+* fix NullPointerException
+
 0.5.1 / 2015-06-06
 ==================
 
