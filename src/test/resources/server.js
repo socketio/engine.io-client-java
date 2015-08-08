@@ -45,7 +45,7 @@ before(server, 'handleRequest', function(req, res) {
   // echo a header value
   var value = req.headers['x-engineio'];
   if (!value) return;
-  res.setHeader('X-EngineIO', value);
+  res.setHeader('X-EngineIO', ['hi', value]);
 });
 
 before(server, 'handleUpgrade', function(req, socket, head) {
@@ -53,6 +53,7 @@ before(server, 'handleUpgrade', function(req, socket, head) {
   var value = req.headers['x-engineio'];
   if (!value) return;
   this.ws.once('headers', function(headers) {
+    headers.push('X-EngineIO: hi');
     headers.push('X-EngineIO: ' + value);
   });
 });

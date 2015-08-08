@@ -6,7 +6,6 @@ import com.github.nkzawa.engineio.parser.Packet;
 import com.github.nkzawa.engineio.parser.Parser;
 import com.github.nkzawa.parseqs.ParseQS;
 import com.github.nkzawa.thread.EventThread;
-import com.squareup.okhttp.Headers;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
@@ -18,10 +17,7 @@ import okio.BufferedSource;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.BINARY;
@@ -42,7 +38,7 @@ public class WebSocket extends Transport {
     }
 
     protected void doOpen() {
-        Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
@@ -55,19 +51,17 @@ public class WebSocket extends Transport {
             client.setHostnameVerifier(this.hostnameVerifier);
         }
         Request.Builder builder = new Request.Builder().url(uri());
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            builder.addHeader(entry.getKey(), entry.getValue());
+        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            for (String v : entry.getValue()) {
+                builder.addHeader(entry.getKey(), v);
+            }
         }
         final Request request = builder.build();
         (wsCall = WebSocketCall.create(client, request)).enqueue(new WebSocketListener() {
             @Override
             public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Response response) {
                 ws = webSocket;
-                final Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-                Headers responseHeaders = response.headers();
-                for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                    headers.put(responseHeaders.name(i), responseHeaders.value(i));
-                }
+                final Map<String, List<String>> headers = response.headers().toMultimap();
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {

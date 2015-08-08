@@ -11,10 +11,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class PollingXHR extends Polling {
@@ -183,16 +180,18 @@ public class PollingXHR extends Polling {
                 }
             }
 
-            Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+            Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
 
             if ("POST".equals(this.method)) {
                 xhr.setDoOutput(true);
-                headers.put("Content-type", "application/octet-stream");
+                headers.put("Content-type", new LinkedList<String>(Arrays.asList("application/octet-stream")));
             }
 
             self.onRequestHeaders(headers);
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                xhr.setRequestProperty(header.getKey(), header.getValue());
+            for (Map.Entry<String, List<String>> header : headers.entrySet()) {
+                for (String v : header.getValue()){
+                    xhr.addRequestProperty(header.getKey(), v);
+                }
             }
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
@@ -208,16 +207,7 @@ public class PollingXHR extends Polling {
                             output.flush();
                         }
 
-                        Map<String, String> headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
-
-                        Map<String, List<String>> xhrHeaderFields = xhr.getHeaderFields();
-                        if(xhrHeaderFields != null) {
-                            for (String key : xhrHeaderFields.keySet()) {
-                                if (key == null) continue;
-                                headers.put(key, xhr.getHeaderField(key));
-                            }
-                        }
-
+                        Map<String, List<String>> headers = xhr.getHeaderFields();
                         self.onResponseHeaders(headers);
 
                         final int statusCode = xhr.getResponseCode();
@@ -257,11 +247,11 @@ public class PollingXHR extends Polling {
             this.cleanup();
         }
 
-        private void onRequestHeaders(Map<String, String> headers) {
+        private void onRequestHeaders(Map<String, List<String>> headers) {
             this.emit(EVENT_REQUEST_HEADERS, headers);
         }
 
-        private void onResponseHeaders(Map<String, String> headers) {
+        private void onResponseHeaders(Map<String, List<String>> headers) {
             this.emit(EVENT_RESPONSE_HEADERS, headers);
         }
 

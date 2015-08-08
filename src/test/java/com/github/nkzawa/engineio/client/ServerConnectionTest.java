@@ -9,6 +9,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -61,7 +63,7 @@ public class ServerConnectionTest extends Connection {
         }).on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                events.offer((String)args[0]);
+                events.offer((String) args[0]);
             }
         });
         socket.open();
@@ -89,7 +91,7 @@ public class ServerConnectionTest extends Connection {
         HandshakeData data = (HandshakeData)args[0];
         assertThat(data.sid, is(notNullValue()));
         assertThat(data.upgrades, is(not(emptyArray())));
-        assertThat(data.pingTimeout, is(greaterThan((long)0)));
+        assertThat(data.pingTimeout, is(greaterThan((long) 0)));
         assertThat(data.pingInterval, is(greaterThan((long) 0)));
         socket.close();
     }
@@ -144,15 +146,17 @@ public class ServerConnectionTest extends Connection {
                     @Override
                     public void call(Object... args) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> headers = (Map<String, String>)args[0];
-                        headers.put("X-EngineIO", "foo");
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        headers.put("X-EngineIO", Arrays.asList("foo"));
                     }
                 }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> headers = (Map<String, String>)args[0];
-                        messages.offer(headers.get("X-EngineIO"));
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        List<String> values = headers.get("X-EngineIO");
+                        messages.offer(values.get(0));
+                        messages.offer(values.get(1));
                     }
                 });
             }
@@ -160,7 +164,7 @@ public class ServerConnectionTest extends Connection {
         socket.open();
 
         assertThat(messages.take(), is("foo"));
-        assertThat(messages.take(), is("foo"));
+        assertThat(messages.take(), is("hi"));
         socket.close();
     }
 
@@ -180,21 +184,24 @@ public class ServerConnectionTest extends Connection {
                     @Override
                     public void call(Object... args) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> headers = (Map<String, String>)args[0];
-                        headers.put("X-EngineIO", "foo");
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        headers.put("X-EngineIO", Arrays.asList("foo"));
                     }
                 }).on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
                         @SuppressWarnings("unchecked")
-                        Map<String, String> headers = (Map<String, String>)args[0];
-                        messages.offer(headers.get("X-EngineIO"));
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        List<String> values = headers.get("X-EngineIO");
+                        messages.offer(values.get(0));
+                        messages.offer(values.get(1));
                     }
                 });
             }
         });
         socket.open();
 
+        assertThat(messages.take(), is("hi"));
         assertThat(messages.take(), is("foo"));
         socket.close();
     }
@@ -265,7 +272,7 @@ public class ServerConnectionTest extends Connection {
             }
         });
 
-        assertThat((String)values.take(), is(Polling.NAME));
+        assertThat((String) values.take(), is(Polling.NAME));
         assertThat((String)values.take(), is(not(WebSocket.NAME)));
     }
 }
