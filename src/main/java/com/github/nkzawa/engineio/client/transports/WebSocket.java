@@ -57,7 +57,8 @@ public class WebSocket extends Transport {
             }
         }
         final Request request = builder.build();
-        (wsCall = WebSocketCall.create(client, request)).enqueue(new WebSocketListener() {
+        wsCall = WebSocketCall.create(client, request);
+        wsCall.enqueue(new WebSocketListener() {
             @Override
             public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Response response) {
                 ws = webSocket;
@@ -175,7 +176,6 @@ public class WebSocket extends Transport {
     protected void doClose() {
         if (wsCall != null) {
             wsCall.cancel();
-            wsCall = null;
         }
         if (ws != null) {
             try {
@@ -185,7 +185,6 @@ public class WebSocket extends Transport {
             } catch (IllegalStateException e) {
                 // websocket already closed
             }
-            ws = null;
         }
     }
 
