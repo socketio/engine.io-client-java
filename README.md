@@ -1,4 +1,4 @@
-# Engine.IO-client.java
+# Engine.IO-client Java
 [![Build Status](https://travis-ci.org/socketio/engine.io-client-java.png?branch=master)](https://travis-ci.org/socketio/engine.io-client-java)
 
 This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/socketio/engine.io-client).
@@ -29,7 +29,7 @@ compile 'io.socket:engine.io-client:0.6.0'
 ```
 
 ## Usage
-Engine.IO-client.java has the similar api with the JS client. You can use `Socket` to connect:
+Engine.IO-client Java has the similar api with the JS client. You can use `Socket` to connect:
 
 ```java
 socket = new Socket("ws://localhost");
