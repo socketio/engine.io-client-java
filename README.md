@@ -1,12 +1,12 @@
 # Engine.IO-client.java
-[![Build Status](https://travis-ci.org/nkzawa/engine.io-client.java.png?branch=master)](https://travis-ci.org/nkzawa/engine.io-client.java)
+[![Build Status](https://travis-ci.org/socketio/engine.io-client-java.png?branch=master)](https://travis-ci.org/socketio/engine.io-client-java)
 
-This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/LearnBoost/engine.io-client).
+This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/socketio/engine.io-client).
 
-See also: [Socket.IO-client.java](https://github.com/nkzawa/socket.io-client.java)
+See also: [Socket.IO-client Java](https://github.com/socketio/socket.io-client-java)
 
 ## Installation
-The latest artifact is available on Maven Central. To install manually, please refer dependencies to [pom.xml](https://github.com/nkzawa/engine.io-client.java/blob/master/pom.xml).
+The latest artifact is available on Maven Central. To install manually, please refer [dependencies](https://socketio.github.com/engine.io-client-java/dependencies.html).
 
 ### Maven
 Add the following dependency to your `pom.xml`.
@@ -14,7 +14,7 @@ Add the following dependency to your `pom.xml`.
 ```xml
 <dependencies>
   <dependency>
-    <groupId>com.github.nkzawa</groupId>
+    <groupId>io.socket</groupId>
     <artifactId>engine.io-client</artifactId>
     <version>0.6.0</version>
   </dependency>
@@ -25,7 +25,7 @@ Add the following dependency to your `pom.xml`.
 Add it as a gradle dependency for Android Studio, in `build.gradle`:
 
 ```groovy
-compile 'com.github.nkzawa:engine.io-client:0.6.0'
+compile 'io.socket:engine.io-client:0.6.0'
 ```
 
 ## Usage
@@ -136,7 +136,7 @@ socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
 
 See the Javadoc for more details.
 
-http://nkzawa.github.io/engine.io-client.java/apidocs/
+http://socketio.github.io/engine.io-client-java/apidocs/
 
 ## License
 
