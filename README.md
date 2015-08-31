@@ -6,7 +6,7 @@ This is the Engine.IO Client Library for Java, which is simply ported from the [
 See also: [Socket.IO-client Java](https://github.com/socketio/socket.io-client-java)
 
 ## Installation
-The latest artifact is available on Maven Central. To install manually, please refer [dependencies](https://socketio.github.com/engine.io-client-java/dependencies.html).
+The latest artifact is available on Maven Central. To install manually, please refer [dependencies](https://socketio.github.io/engine.io-client-java/dependencies.html).
 
 ### Maven
 Add the following dependency to your `pom.xml`.
