@@ -18,6 +18,7 @@ import okio.BufferedSource;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static com.squareup.okhttp.ws.WebSocket.PayloadType.BINARY;
@@ -43,6 +44,12 @@ public class WebSocket extends Transport {
 
         final WebSocket self = this;
         final OkHttpClient client = new OkHttpClient();
+
+        // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
+        client.setConnectTimeout(0, TimeUnit.MILLISECONDS);
+        client.setReadTimeout(0, TimeUnit.MILLISECONDS);
+        client.setWriteTimeout(0, TimeUnit.MILLISECONDS);
+
         if (this.sslContext != null) {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
             client.setSslSocketFactory(factory);
