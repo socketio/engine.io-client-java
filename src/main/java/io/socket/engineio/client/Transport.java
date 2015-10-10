@@ -5,6 +5,7 @@ import io.socket.emitter.Emitter;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.thread.EventThread;
+import io.socket.utf8.UTF8Exception;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -98,7 +99,11 @@ public abstract class Transport extends Emitter {
             @Override
             public void run() {
                 if (Transport.this.readyState == ReadyState.OPEN) {
-                    Transport.this.write(packets);
+                    try {
+                        Transport.this.write(packets);
+                    } catch (UTF8Exception err) {
+                        throw new RuntimeException(err);
+                    }
                 } else {
                     throw new RuntimeException("Transport not open");
                 }
@@ -129,7 +134,7 @@ public abstract class Transport extends Emitter {
         this.emit(EVENT_CLOSE);
     }
 
-    abstract protected void write(Packet[] packets);
+    abstract protected void write(Packet[] packets) throws UTF8Exception;
 
     abstract protected void doOpen();
 

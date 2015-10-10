@@ -14,8 +14,8 @@ public class UTF8 {
     private static int byteCount;
     private static int byteIndex;
 
-    public static String encode(String string) {
-        int[] codePoints = uc2decode(string);
+    public static String encode(String string) throws UTF8Exception {
+        int[] codePoints = ucs2decode(string);
         int length = codePoints.length;
         int index = -1;
         int codePoint;
@@ -28,7 +28,7 @@ public class UTF8 {
     }
 
     public static String decode(String byteString) throws UTF8Exception {
-        byteArray = uc2decode(byteString);
+        byteArray = ucs2decode(byteString);
         byteCount = byteArray.length;
         byteIndex = 0;
         List<Integer> codePoints = new ArrayList<Integer>();
@@ -39,7 +39,7 @@ public class UTF8 {
         return ucs2encode(listToArray(codePoints));
     }
 
-    private static int[] uc2decode(String string) {
+    private static int[] ucs2decode(String string) {
         int length = string.length();
         int[] output = new int[string.codePointCount(0, length)];
         int counter = 0;
@@ -51,7 +51,7 @@ public class UTF8 {
         return output;
     }
 
-    private static String encodeCodePoint(int codePoint) {
+    private static String encodeCodePoint(int codePoint) throws UTF8Exception {
         StringBuilder symbol = new StringBuilder();
         if ((codePoint & 0xFFFFFF80) == 0) {
             return symbol.append(Character.toChars(codePoint)).toString();
@@ -59,6 +59,7 @@ public class UTF8 {
         if ((codePoint & 0xFFFFF800) == 0) {
             symbol.append(Character.toChars(((codePoint >> 6) & 0x1F) | 0xC0));
         } else if ((codePoint & 0xFFFF0000) == 0) {
+            checkScalarValue(codePoint);
             symbol.append(Character.toChars(((codePoint >> 12) & 0x0F) | 0xE0));
             symbol.append(createByte(codePoint, 6));
         } else if ((codePoint & 0xFFE00000) == 0) {
@@ -111,6 +112,7 @@ public class UTF8 {
             byte3 = readContinuationByte();
             codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
             if (codePoint >= 0x0800) {
+                checkScalarValue(codePoint);
                 return codePoint;
             } else {
                 throw new UTF8Exception("Invalid continuation byte");
@@ -151,6 +153,15 @@ public class UTF8 {
             output.appendCodePoint(value);
         }
         return output.toString();
+    }
+
+    private static void checkScalarValue(int codePoint) throws UTF8Exception {
+        if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
+            throw new UTF8Exception(
+                    "Lone surrogate U+" + Integer.toHexString(codePoint).toUpperCase() +
+                    " is not a scalar value"
+            );
+        }
     }
 
     private static int[] listToArray(List<Integer> list) {

@@ -38,11 +38,11 @@ public class Parser {
 
     private Parser() {}
 
-    public static void encodePacket(Packet packet, EncodeCallback callback) {
+    public static void encodePacket(Packet packet, EncodeCallback callback) throws UTF8Exception {
         encodePacket(packet, false, callback);
     }
 
-    public static void encodePacket(Packet packet, boolean utf8encode, EncodeCallback callback) {
+    public static void encodePacket(Packet packet, boolean utf8encode, EncodeCallback callback) throws UTF8Exception {
         if (packet.data instanceof byte[]) {
             @SuppressWarnings("unchecked")
             Packet<byte[]> _packet = packet;
@@ -109,7 +109,7 @@ public class Parser {
         return new Packet<byte[]>(packetslist.get(type), intArray);
     }
 
-    public static void encodePayload(Packet[] packets, EncodeCallback<byte[]> callback) {
+    public static void encodePayload(Packet[] packets, EncodeCallback<byte[]> callback) throws UTF8Exception {
         if (packets.length == 0) {
             callback.call(new byte[0]);
             return;

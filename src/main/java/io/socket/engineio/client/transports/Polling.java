@@ -7,6 +7,7 @@ import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.emitter.Emitter;
+import io.socket.utf8.UTF8Exception;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -152,7 +153,11 @@ abstract public class Polling extends Transport {
             @Override
             public void call(Object... args) {
                 logger.fine("writing close packet");
-                self.write(new Packet[] {new Packet(Packet.CLOSE)});
+                try {
+                    self.write(new Packet[]{new Packet(Packet.CLOSE)});
+                } catch (UTF8Exception err) {
+                    throw new RuntimeException(err);
+                }
             }
         };
 
@@ -167,7 +172,7 @@ abstract public class Polling extends Transport {
         }
     }
 
-    protected void write(Packet[] packets) {
+    protected void write(Packet[] packets) throws UTF8Exception {
         final Polling self = this;
         this.writable = false;
         final Runnable callbackfn = new Runnable() {

@@ -1,5 +1,6 @@
 package io.socket.engineio.parser;
 
+import io.socket.utf8.UTF8Exception;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -14,7 +15,7 @@ public class ParserTest {
     static final String ERROR_DATA = "parser error";
 
     @Test
-    public void encodeAsString() {
+    public void encodeAsString() throws UTF8Exception {
         encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -24,7 +25,7 @@ public class ParserTest {
     }
 
     @Test
-    public void decodeAsPacket() {
+    public void decodeAsPacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -34,7 +35,7 @@ public class ParserTest {
     }
 
     @Test
-    public void noData() {
+    public void noData() throws UTF8Exception  {
         encodePacket(new Packet(Packet.MESSAGE), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -46,7 +47,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeOpenPacket() {
+    public void encodeOpenPacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.OPEN, "{\"some\":\"json\"}"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -58,7 +59,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeClosePacket() {
+    public void encodeClosePacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.CLOSE), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -69,7 +70,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodePingPacket() {
+    public void encodePingPacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.PING, "1"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -81,7 +82,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodePongPacket() {
+    public void encodePongPacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.PONG, "1"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -93,7 +94,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeMessagePacket() {
+    public void encodeMessagePacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.MESSAGE, "aaa"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -105,7 +106,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeUTF8SpecialCharsMessagePacket() {
+    public void encodeUTF8SpecialCharsMessagePacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.MESSAGE, "utf8 — string"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -117,7 +118,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeMessagePacketCoercingToString() {
+    public void encodeMessagePacketCoercingToString() throws UTF8Exception  {
         encodePacket(new Packet<Integer>(Packet.MESSAGE, 1), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -129,7 +130,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeUpgradePacket() {
+    public void encodeUpgradePacket() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.UPGRADE), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -140,7 +141,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodingFormat() {
+    public void encodingFormat() throws UTF8Exception  {
         encodePacket(new Packet<String>(Packet.MESSAGE, "test"), new EncodeCallback<String>() {
             @Override
             public void call(String data) {
@@ -177,7 +178,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodePayloads() {
+    public void encodePayloads() throws UTF8Exception  {
         encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback<byte[]>() {
             @Override
             public void call(byte[] data) {
@@ -187,7 +188,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeAndDecodePayloads() {
+    public void encodeAndDecodePayloads() throws UTF8Exception  {
         encodePayload(new Packet[] {new Packet<String>(Packet.MESSAGE, "a")}, new EncodeCallback<byte[]>() {
             @Override
             public void call(byte[] data) {
@@ -221,7 +222,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeAndDecodeEmptyPayloads() {
+    public void encodeAndDecodeEmptyPayloads() throws UTF8Exception  {
         encodePayload(new Packet[] {}, new EncodeCallback<byte[]>() {
             @Override
             public void call(byte[] data) {
@@ -335,7 +336,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeBinaryMessage() {
+    public void encodeBinaryMessage() throws UTF8Exception  {
         final byte[] data = new byte[5];
         for (int i = 0; i < data.length; i++) {
             data[0] = (byte)i;
@@ -351,7 +352,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeBinaryContents() {
+    public void encodeBinaryContents() throws UTF8Exception  {
         final byte[] firstBuffer = new byte[5];
         for (int i = 0 ; i < firstBuffer.length; i++) {
             firstBuffer[0] = (byte)i;
@@ -385,7 +386,7 @@ public class ParserTest {
     }
 
     @Test
-    public void encodeMixedBinaryAndStringContents() {
+    public void encodeMixedBinaryAndStringContents() throws UTF8Exception  {
         final byte[] firstBuffer = new byte[123];
         for (int i = 0 ; i < firstBuffer.length; i++) {
             firstBuffer[0] = (byte)i;

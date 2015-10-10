@@ -26,25 +26,25 @@ public class UTF8Test {
         new Data(0x07FF, "\uFFFF", "\u00EF\u00BF\u00BF"),
         // unmatched surrogate halves
         // high surrogates: 0xD800 to 0xDBFF
-        new Data(0xD800, "\uD800", "\u00ED\u00A0\u0080"),
+        new Data(0xD800, "\uD800", "\u00ED\u00A0\u0080", true),
         new Data("High surrogate followed by another high surrogate",
-                "\uD800\uD800", "\u00ED\u00A0\u0080\u00ED\u00A0\u0080"),
+                "\uD800\uD800", "\u00ED\u00A0\u0080\u00ED\u00A0\u0080", true),
         new Data("High surrogate followed by a symbol that is not a surrogate",
-                "\uD800A", "\u00ED\u00A0\u0080A"),
+                "\uD800A", "\u00ED\u00A0\u0080A", true),
         new Data("Unmatched high surrogate, followed by a surrogate pair, followed by an unmatched high surrogate",
-                "\uD800\uD834\uDF06\uD800", "\u00ED\u00A0\u0080\u00F0\u009D\u008C\u0086\u00ED\u00A0\u0080"),
-        new Data(0xD9AF, "\uD9AF", "\u00ED\u00A6\u00AF"),
-        new Data(0xDBFF, "\uDBFF", "\u00ED\u00AF\u00BF"),
+                "\uD800\uD834\uDF06\uD800", "\u00ED\u00A0\u0080\u00F0\u009D\u008C\u0086\u00ED\u00A0\u0080", true),
+        new Data(0xD9AF, "\uD9AF", "\u00ED\u00A6\u00AF", true),
+        new Data(0xDBFF, "\uDBFF", "\u00ED\u00AF\u00BF", true),
         // low surrogates: 0xDC00 to 0xDFFF
-        new Data(0xDC00, "\uDC00", "\u00ED\u00B0\u0080"),
+        new Data(0xDC00, "\uDC00", "\u00ED\u00B0\u0080", true),
         new Data("Low surrogate followed by another low surrogate",
-                "\uDC00\uDC00", "\u00ED\u00B0\u0080\u00ED\u00B0\u0080"),
+                "\uDC00\uDC00", "\u00ED\u00B0\u0080\u00ED\u00B0\u0080", true),
         new Data("Low surrogate followed by a symbol that is not a surrogate",
-                "\uDC00A", "\u00ED\u00B0\u0080A"),
+                "\uDC00A", "\u00ED\u00B0\u0080A", true),
         new Data("Unmatched low surrogate, followed by a surrogate pair, followed by an unmatched low surrogate",
-                "\uDC00\uD834\uDF06\uDC00", "\u00ED\u00B0\u0080\u00F0\u009D\u008C\u0086\u00ED\u00B0\u0080"),
-        new Data(0xDEEE, "\uDEEE", "\u00ED\u00BB\u00AE"),
-        new Data(0xDFFF, "\uDFFF", "\u00ED\u00BF\u00BF"),
+                "\uDC00\uD834\uDF06\uDC00", "\u00ED\u00B0\u0080\u00F0\u009D\u008C\u0086\u00ED\u00B0\u0080", true),
+        new Data(0xDEEE, "\uDEEE", "\u00ED\u00BB\u00AE", true),
+        new Data(0xDFFF, "\uDFFF", "\u00ED\u00BF\u00BF", true),
         // 4-byte
         new Data(0x010000, "\uD800\uDC00", "\u00F0\u0090\u0080\u0080"),
         new Data(0x01D306, "\uD834\uDF06", "\u00F0\u009D\u008C\u0086"),
@@ -58,8 +58,15 @@ public class UTF8Test {
     public void encodeAndDecode() throws UTF8Exception {
         for (Data data : DATA) {
             String reason = data.description != null? data.description : "U+" + Integer.toHexString(data.codePoint).toUpperCase();
-            assertThat("Encoding: " + reason, data.encoded, is(UTF8.encode(data.decoded)));
-            assertThat("Decoding: " + reason, data.decoded, is(UTF8.decode(data.encoded)));
+            if (data.error) {
+                exception.expect(UTF8Exception.class);
+                UTF8.decode(data.encoded);
+                exception.expect(UTF8Exception.class);
+                UTF8.encode(data.decoded);
+            } else {
+                assertThat("Encoding: " + reason, data.encoded, is(UTF8.encode(data.decoded)));
+                assertThat("Decoding: " + reason, data.decoded, is(UTF8.decode(data.encoded)));
+            }
         }
 
         exception.expect(UTF8Exception.class);
@@ -80,17 +87,28 @@ public class UTF8Test {
         public String description;
         public String decoded;
         public String encoded;
+        public boolean error;
 
         public Data(int codePoint, String decoded, String encoded) {
+            this(codePoint, decoded, encoded, false);
+        }
+
+        public Data(int codePoint, String decoded, String encoded, boolean error) {
             this.codePoint = codePoint;
             this.decoded = decoded;
             this.encoded = encoded;
+            this.error = error;
         }
 
         public Data(String description, String decoded, String encoded) {
+            this(description, decoded, encoded, false);
+        }
+
+        public Data(String description, String decoded, String encoded, boolean error) {
             this.description = description;
             this.decoded = decoded;
             this.encoded = encoded;
+            this.error = error;
         }
     }
 }

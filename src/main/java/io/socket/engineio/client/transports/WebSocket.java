@@ -12,6 +12,7 @@ import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ws.WebSocket.PayloadType;
 import com.squareup.okhttp.ws.WebSocketCall;
 import com.squareup.okhttp.ws.WebSocketListener;
+import io.socket.utf8.UTF8Exception;
 import okio.Buffer;
 import okio.BufferedSource;
 
@@ -142,7 +143,7 @@ public class WebSocket extends Transport {
         client.getDispatcher().getExecutorService().shutdown();
     }
 
-    protected void write(Packet[] packets) {
+    protected void write(Packet[] packets) throws UTF8Exception {
         final WebSocket self = this;
         this.writable = false;
         for (Packet packet : packets) {

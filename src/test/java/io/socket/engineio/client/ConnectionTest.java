@@ -72,7 +72,7 @@ public class ConnectionTest extends Connection {
         socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
             @Override
             public void call(Object... args) {
-                socket.send("\uD800-\uDB7F\uDB80-\uDBFF\uDC00-\uDFFF\uE000-\uF8FF");
+                socket.send("\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF");
                 socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
                     @Override
                     public void call(Object... args) {
@@ -85,7 +85,7 @@ public class ConnectionTest extends Connection {
         });
         socket.open();
 
-        assertThat((String)values.take(), is("\uD800-\uDB7F\uDB80-\uDBFF\uDC00-\uDFFF\uE000-\uF8FF"));
+        assertThat((String)values.take(), is("\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF"));
     }
 
     @Test(timeout = TIMEOUT)
