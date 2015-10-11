@@ -221,6 +221,7 @@ public class PollingXHR extends Polling {
                         self.onError(e);
                     } catch (NullPointerException e) {
                         // It would occur to disconnect
+                        // https://code.google.com/p/android/issues/detail?id=76592
                         self.onError(e);
                     } finally {
                         try {
