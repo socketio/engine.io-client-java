@@ -4,6 +4,7 @@
 * compatible with engine.io 1.5.4
 * bump okhttp-ws [b95505017]
 * check lone surrogate
+* fix NPE of polling request on Android [ZeroBrain]
 
 0.6.1 / 2015-08-31
 ==================
