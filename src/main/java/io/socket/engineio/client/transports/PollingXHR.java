@@ -219,6 +219,9 @@ public class PollingXHR extends Polling {
                         }
                     } catch (IOException e) {
                         self.onError(e);
+                    } catch (NullPointerException e) {
+                        // It would occur to disconnect
+                        self.onError(e);
                     } finally {
                         try {
                             if (output != null) output.close();
