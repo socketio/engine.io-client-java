@@ -1,3 +1,10 @@
+0.6.2 / 2015-10-10
+==================
+
+* compatible with engine.io 1.5.4
+* bump okhttp-ws [b95505017]
+* check lone surrogate
+
 0.6.1 / 2015-08-31
 ==================
 
