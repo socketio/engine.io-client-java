@@ -487,9 +487,7 @@ public class Socket extends Emitter {
                 } catch (JSONException e) {
                     this.emit(EVENT_ERROR, new EngineIOException(e));
                 }
-            } else if (Packet.PONG.equals(packet.type)) {
-                this.setPing();
-            } else if (Packet.ERROR.equals(packet.type)) {
+            } else if (Packet.ERROR.equals(packet.type)) { // FIX: removed test for PONG because setPing must be called to reset ping timeout after any packet received, as I made a fix to onHeartbeat, we would otherwise setPing() twice
                 EngineIOException err = new EngineIOException("server error");
                 err.code = packet.data;
                 this.emit(EVENT_ERROR, err);
@@ -521,19 +519,16 @@ public class Socket extends Emitter {
     private final Listener onHeartbeatAsListener = new Listener() {
         @Override
         public void call(Object... args) {
-            Socket.this.onHeartbeat(args.length > 0 ? (Long)args[0]: 0);
+            setPing(); // FIX: call setPing and onHeartbeat one after the other; see below
         }
     };
 
-    private void onHeartbeat(long timeout) {
+    private void onHeartbeat() {
         if (this.pingTimeoutTimer != null) {
             pingTimeoutTimer.cancel(false);
         }
 
-        if (timeout <= 0) {
-            timeout = this.pingInterval + this.pingTimeout;
-        }
-
+        logger.fine(String.format("expecting pong within %sms", this.pingTimeout)); // FIX: removed wrong timeout calculation because heartbeat must always be after this.pingTimeout
         final Socket self = this;
         this.pingTimeoutTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
             @Override
@@ -546,7 +541,7 @@ public class Socket extends Emitter {
                     }
                 });
             }
-        }, timeout, TimeUnit.MILLISECONDS);
+        }, this.pingTimeout, TimeUnit.MILLISECONDS);
     }
 
     private void setPing() {
@@ -555,19 +550,20 @@ public class Socket extends Emitter {
         }
 
         final Socket self = this;
-        this.pingIntervalTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
+        this.pingIntervalTimer = this.getHeartbeatScheduler().scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run() {
+            public void run() { // FIX: implemented rescheduling and cancelling of regular pings; fixes an issue were pings could be missing
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
+                        logger.fine("writing ping packet");
                         self.ping();
-                        self.onHeartbeat(self.pingTimeout);
                     }
                 });
             }
-        }, this.pingInterval, TimeUnit.MILLISECONDS);
+        }, this.pingInterval, this.pingInterval, TimeUnit.MILLISECONDS);
+
+        this.onHeartbeat(); // FIX: onHeartbeat is now always called after setPing, not from within the runnable; we could move onHeartbeat() here in its entirety
     }
 
     /**
