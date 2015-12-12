@@ -25,7 +25,10 @@ Add the following dependency to your `pom.xml`.
 Add it as a gradle dependency for Android Studio, in `build.gradle`:
 
 ```groovy
-compile 'io.socket:engine.io-client:0.6.2'
+compile ('io.socket:engine.io-client:0.6.2') {
+  // excluding org.json which is provided by Android
+  exclude group: 'org.json', module: 'json'
+}
 ```
 
 ## Usage
