@@ -96,10 +96,12 @@ Use custom SSL settings:
 ```java
 // default SSLContext for all sockets
 Socket.setDefaultSSLContext(mySSLContext);
+Socket.setDefaultHostnameVerifier(myHostnameVerifier);
 
 // set as an option
 opts = new Socket.Options();
 opts.sslContext = mySSLContext;
+opts.hostnameVerifier = myHostnameVerifier;
 socket = new Socket(opts);
 ```
 
