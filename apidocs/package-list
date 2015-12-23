@@ -1,0 +1,8 @@
+io.socket.emitter
+io.socket.engineio.client
+io.socket.engineio.client.transports
+io.socket.engineio.parser
+io.socket.global
+io.socket.parseqs
+io.socket.thread
+io.socket.utf8
