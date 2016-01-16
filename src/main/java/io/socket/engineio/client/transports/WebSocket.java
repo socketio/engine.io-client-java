@@ -1,13 +1,14 @@
 package io.socket.engineio.client.transports;
 
 
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.ResponseBody;
-import com.squareup.okhttp.ws.WebSocketCall;
-import com.squareup.okhttp.ws.WebSocketListener;
+import okhttp3.OkHttpClient;
+import okhttp3.OkHttpClient.Builder;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okhttp3.ws.WebSocketCall;
+import okhttp3.ws.WebSocketListener;
 
 import java.io.IOException;
 import java.util.Date;
@@ -28,8 +29,8 @@ import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import okio.Buffer;
 
-import static com.squareup.okhttp.ws.WebSocket.BINARY;
-import static com.squareup.okhttp.ws.WebSocket.TEXT;
+import static okhttp3.ws.WebSocket.BINARY;
+import static okhttp3.ws.WebSocket.TEXT;
 
 public class WebSocket extends Transport {
 
@@ -37,7 +38,7 @@ public class WebSocket extends Transport {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
-    private com.squareup.okhttp.ws.WebSocket ws;
+    private okhttp3.ws.WebSocket ws;
     private WebSocketCall wsCall;
 
     public WebSocket(Options opts) {
@@ -50,19 +51,18 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        final OkHttpClient client = new OkHttpClient();
-
-        // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
-        client.setConnectTimeout(0, TimeUnit.MILLISECONDS);
-        client.setReadTimeout(0, TimeUnit.MILLISECONDS);
-        client.setWriteTimeout(0, TimeUnit.MILLISECONDS);
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+                // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
+                .connectTimeout(0, TimeUnit.MILLISECONDS)
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(0, TimeUnit.MILLISECONDS);
 
         if (this.sslContext != null) {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
-            client.setSslSocketFactory(factory);
+            clientBuilder.sslSocketFactory(factory);
         }
         if (this.hostnameVerifier != null) {
-            client.setHostnameVerifier(this.hostnameVerifier);
+            clientBuilder.hostnameVerifier(this.hostnameVerifier);
         }
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
@@ -71,10 +71,11 @@ public class WebSocket extends Transport {
             }
         }
         final Request request = builder.build();
+        final OkHttpClient client = clientBuilder.build();
         wsCall = WebSocketCall.create(client, request);
         wsCall.enqueue(new WebSocketListener() {
             @Override
-            public void onOpen(com.squareup.okhttp.ws.WebSocket webSocket, Response response) {
+            public void onOpen(okhttp3.ws.WebSocket webSocket, Response response) {
                 ws = webSocket;
                 final Map<String, List<String>> headers = response.headers().toMultimap();
                 EventThread.exec(new Runnable() {
@@ -143,7 +144,7 @@ public class WebSocket extends Transport {
                 });
             }
         });
-        client.getDispatcher().getExecutorService().shutdown();
+        client.dispatcher().executorService().shutdown();
     }
 
     protected void write(Packet[] packets) throws UTF8Exception {
