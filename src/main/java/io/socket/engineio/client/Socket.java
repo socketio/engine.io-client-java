@@ -111,7 +111,7 @@ public class Socket extends Emitter {
     private long pingInterval;
     private long pingTimeout;
     private String id;
-    private String hostname;
+    /*package*/ String hostname;
     private String path;
     private String timestampParam;
     private List<String> transports;
@@ -171,29 +171,27 @@ public class Socket extends Emitter {
 
     public Socket(Options opts) {
         if (opts.host != null) {
-            boolean ipv6uri = opts.host.indexOf(']') != -1;
-            String[] pieces = ipv6uri ? opts.host.split("]:") : opts.host.split(":");
-            boolean ipv6 = (pieces.length > 2 || opts.host.indexOf("::") == -1);
+            String hostname = opts.host;
+            boolean ipv6 = hostname.split(":").length > 2;
             if (ipv6) {
-                opts.hostname = opts.host;
-            } else {
-                opts.hostname = pieces[0];
-                if (ipv6uri) {
-                    opts.hostname = opts.hostname.substring(1);
-                }
-                if (pieces.length > 1) {
-                    opts.port = Integer.parseInt(pieces[pieces.length - 1]);
-                } else if (opts.port == -1) {
-                    // if no port is specified manually, use the protocol default
-                    opts.port = this.secure ? 443 : 80;
-                }
+                int start = hostname.indexOf('[');
+                if (start != -1) hostname = hostname.substring(start + 1);
+                int end = hostname.lastIndexOf(']');
+                if (end != -1) hostname = hostname.substring(0, end);
             }
+            opts.hostname = hostname;
         }
 
         this.secure = opts.secure;
+
+        if (opts.port == -1) {
+            // if no port is specified manually, use the protocol default
+            opts.port = this.secure ? 443 : 80;
+        }
+
         this.sslContext = opts.sslContext != null ? opts.sslContext : defaultSSLContext;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
-        this.port = opts.port != 0 ? opts.port : (this.secure ? 443 : 80);
+        this.port = opts.port;
         this.query = opts.query != null ?
                 ParseQS.decode(opts.query) : new HashMap<String, String>();
         this.upgrade = opts.upgrade;

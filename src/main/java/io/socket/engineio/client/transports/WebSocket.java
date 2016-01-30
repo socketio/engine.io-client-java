@@ -1,15 +1,22 @@
 package io.socket.engineio.client.transports;
 
 
+import io.socket.engineio.client.Transport;
+import io.socket.engineio.parser.Packet;
+import io.socket.engineio.parser.Parser;
+import io.socket.parseqs.ParseQS;
+import io.socket.thread.EventThread;
+import io.socket.utf8.UTF8Exception;
 import okhttp3.OkHttpClient;
-import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.ws.WebSocketCall;
 import okhttp3.ws.WebSocketListener;
+import okio.Buffer;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
@@ -18,16 +25,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
-import javax.net.ssl.SSLSocketFactory;
-
-import io.socket.engineio.client.Transport;
-import io.socket.engineio.parser.Packet;
-import io.socket.engineio.parser.Parser;
-import io.socket.parseqs.ParseQS;
-import io.socket.thread.EventThread;
-import io.socket.utf8.UTF8Exception;
-import okio.Buffer;
 
 import static okhttp3.ws.WebSocket.BINARY;
 import static okhttp3.ws.WebSocket.TEXT;
@@ -222,6 +219,7 @@ public class WebSocket extends Transport {
             _query = "?" + _query;
         }
 
-        return schema + "://" + this.hostname + port + this.path + _query;
+        boolean ipv6 = this.hostname.contains(":");
+        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + _query;
     }
 }

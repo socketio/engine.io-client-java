@@ -88,6 +88,30 @@ public class TransportTest {
     }
 
     @Test
+    public void ipv6Uri() {
+        Transport.Options opt = new Transport.Options();
+        opt.path ="/engine.io";
+        opt.hostname = "::1";
+        opt.secure = false;
+        opt.port = 80;
+        opt.timestampRequests = false;
+        Polling polling = new Polling(opt);
+        assertThat(polling.uri(), containsString("http://[::1]/engine.io"));
+    }
+
+    @Test
+    public void ipv6UriWithPort() {
+        Transport.Options opt = new Transport.Options();
+        opt.path ="/engine.io";
+        opt.hostname = "::1";
+        opt.secure = false;
+        opt.port = 8080;
+        opt.timestampRequests = false;
+        Polling polling = new Polling(opt);
+        assertThat(polling.uri(), containsString("http://[::1]:8080/engine.io"));
+    }
+
+    @Test
     public void wsUri() {
         Transport.Options opt = new Transport.Options();
         opt.path ="/engine.io";
@@ -121,6 +145,30 @@ public class TransportTest {
         opt.timestampRequests = true;
         WS ws = new WS(opt);
         assertThat(ws.uri().matches("ws://localhost/engine.io\\?woot=[0-9]+"), is(true));
+    }
+
+    @Test
+    public void wsIPv6Uri() {
+        Transport.Options opt = new Transport.Options();
+        opt.path ="/engine.io";
+        opt.hostname = "::1";
+        opt.secure = false;
+        opt.port = 80;
+        opt.timestampRequests = false;
+        WS ws = new WS(opt);
+        assertThat(ws.uri(), containsString("ws://[::1]/engine.io"));
+    }
+
+    @Test
+    public void wsIPv6UriWithPort() {
+        Transport.Options opt = new Transport.Options();
+        opt.path ="/engine.io";
+        opt.hostname = "::1";
+        opt.secure = false;
+        opt.port = 8080;
+        opt.timestampRequests = false;
+        WS ws = new WS(opt);
+        assertThat(ws.uri(), containsString("ws://[::1]:8080/engine.io"));
     }
 
     class Polling extends PollingXHR {

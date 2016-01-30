@@ -214,7 +214,8 @@ abstract public class Polling extends Transport {
             _query = "?" + _query;
         }
 
-        return schema + "://" + this.hostname + port + this.path + _query;
+        boolean ipv6 = this.hostname.contains(":");
+        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + _query;
     }
 
     abstract protected void doWrite(byte[] data, Runnable fn);
