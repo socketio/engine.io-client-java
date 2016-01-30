@@ -147,6 +147,23 @@ public class WebSocket extends Transport {
     protected void write(Packet[] packets) throws UTF8Exception {
         final WebSocket self = this;
         this.writable = false;
+
+        final Runnable done = new Runnable() {
+            @Override
+            public void run() {
+                // fake drain
+                // defer to next tick to allow Socket to clear writeBuffer
+                EventThread.nextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        self.writable = true;
+                        self.emit(EVENT_DRAIN);
+                    }
+                });
+            }
+        };
+
+        final int[] total = new int[] { packets.length };
         for (Packet packet : packets) {
             Parser.encodePacket(packet, new Parser.EncodeCallback() {
                 @Override
@@ -160,21 +177,11 @@ public class WebSocket extends Transport {
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
                     }
+
+                    if (0 == --total[0]) done.run();
                 }
             });
         }
-
-        final Runnable ondrain = new Runnable() {
-            @Override
-            public void run() {
-                self.writable = true;
-                self.emit(EVENT_DRAIN);
-            }
-        };
-
-        // fake drain
-        // defer to next tick to allow Socket to clear writeBuffer
-        EventThread.nextTick(ondrain);
     }
 
     @Override
