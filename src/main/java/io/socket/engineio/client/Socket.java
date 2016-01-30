@@ -79,6 +79,8 @@ public class Socket extends Emitter {
     public static final String EVENT_PACKET_CREATE = "packetCreate";
     public static final String EVENT_HEARTBEAT = "heartbeat";
     public static final String EVENT_DATA = "data";
+    public static final String EVENT_PING = "ping";
+    public static final String EVENT_PONG = "pong";
 
     /**
      * Called on a new transport is created.
@@ -487,10 +489,11 @@ public class Socket extends Emitter {
                 }
             } else if (Packet.PONG.equals(packet.type)) {
                 this.setPing();
+                this.emit(EVENT_PONG);
             } else if (Packet.ERROR.equals(packet.type)) {
                 EngineIOException err = new EngineIOException("server error");
                 err.code = packet.data;
-                this.emit(EVENT_ERROR, err);
+                this.onError(err);
             } else if (Packet.MESSAGE.equals(packet.type)) {
                 this.emit(EVENT_DATA, packet.data);
                 this.emit(EVENT_MESSAGE, packet.data);
@@ -571,11 +574,16 @@ public class Socket extends Emitter {
     /**
      * Sends a ping packet.
      */
-    public void ping() {
+    private void ping() {
         EventThread.exec(new Runnable() {
             @Override
             public void run() {
-                Socket.this.sendPacket(Packet.PING);
+                Socket.this.sendPacket(Packet.PING, new Runnable() {
+                    @Override
+                    public void run() {
+                        Socket.this.emit(EVENT_PING);
+                    }
+                });
             }
         });
     }
@@ -664,8 +672,8 @@ public class Socket extends Emitter {
         });
     }
 
-    private void sendPacket(String type) {
-        this.sendPacket(new Packet(type), null);
+    private void sendPacket(String type, Runnable fn) {
+        this.sendPacket(new Packet(type), fn);
     }
 
     private void sendPacket(String type, String data, Runnable fn) {
