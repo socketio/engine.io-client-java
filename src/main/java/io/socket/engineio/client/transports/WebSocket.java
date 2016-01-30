@@ -7,6 +7,7 @@ import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
+import io.socket.yeast.Yeast;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -18,7 +19,6 @@ import okio.Buffer;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -211,7 +211,7 @@ public class WebSocket extends Transport {
         }
 
         if (this.timestampRequests) {
-            query.put(this.timestampParam, String.valueOf(new Date().getTime()));
+            query.put(this.timestampParam, Yeast.yeast());
         }
 
         String _query = ParseQS.encode(query);

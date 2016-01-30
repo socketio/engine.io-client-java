@@ -30,8 +30,6 @@ public abstract class Transport extends Emitter {
     public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
     public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
 
-    protected static int timestamps = 0;
-
     public boolean writable;
     public String name;
     public Map<String, String> query;

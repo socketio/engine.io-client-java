@@ -84,7 +84,7 @@ public class TransportTest {
         opt.timestampParam = "t";
         opt.timestampRequests = true;
         Polling polling = new Polling(opt);
-        assertThat(polling.uri().matches("http://localhost/engine.io\\?(j=[0-9]+&)?t=[0-9]+-[0-9]+"), is(true));
+        assertThat(polling.uri().matches("http://localhost/engine.io\\?(j=[0-9]+&)?t=[0-9A-Za-z-_.]+"), is(true));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class TransportTest {
         opt.timestampParam = "woot";
         opt.timestampRequests = true;
         WS ws = new WS(opt);
-        assertThat(ws.uri().matches("ws://localhost/engine.io\\?woot=[0-9]+"), is(true));
+        assertThat(ws.uri().matches("ws://localhost/engine.io\\?woot=[0-9A-Za-z-_.]+"), is(true));
     }
 
     @Test

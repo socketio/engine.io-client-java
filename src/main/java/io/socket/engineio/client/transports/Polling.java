@@ -1,15 +1,15 @@
 package io.socket.engineio.client.transports;
 
 
+import io.socket.emitter.Emitter;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
-import io.socket.emitter.Emitter;
 import io.socket.utf8.UTF8Exception;
+import io.socket.yeast.Yeast;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -200,7 +200,7 @@ abstract public class Polling extends Transport {
         String port = "";
 
         if (this.timestampRequests) {
-            query.put(this.timestampParam, String.valueOf(new Date().getTime()) + "-" + Transport.timestamps++);
+            query.put(this.timestampParam, Yeast.yeast());
         }
 
         String _query = ParseQS.encode(query);
