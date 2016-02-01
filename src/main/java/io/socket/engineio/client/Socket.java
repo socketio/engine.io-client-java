@@ -8,12 +8,10 @@ import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
-
 import org.json.JSONException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -31,9 +29,10 @@ import java.util.logging.Logger;
  */
 public class Socket extends Emitter {
 
+    private static final Logger logger = Logger.getLogger(Socket.class.getName());
+
     private static final String PROBE_ERROR = "probe error";
 
-	private static final Logger logger = Logger.getLogger(Socket.class.getName());
 
     private enum ReadyState {
         OPENING, OPEN, CLOSING, CLOSED;
