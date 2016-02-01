@@ -1,3 +1,13 @@
+0.7.0 / 2016-02-01
+==================
+
+* compatible with engine.io 1.6.8
+* bump okhttp-ws [b95505017]
+* IPv6 support
+* use better cache busting id
+* add ping and pong events
+* improve firing of drain in websocket transport
+
 0.6.3 / 2015-12-23
 ==================
 
