@@ -225,7 +225,9 @@ public class PollingXHR extends Polling {
                         self.onError(e);
                     } finally {
                         try {
-                            if (output != null) output.close();
+                            if (output != null) {
+                                output.close();
+                            }
                         } catch (IOException e) {}
                     }
                 }
@@ -304,10 +306,14 @@ public class PollingXHR extends Polling {
                 this.onError(e);
             } finally {
                 try {
-                    if (input != null) input.close();
+                    if (input != null) {
+                        input.close();
+                    }
                 } catch (IOException e) {}
                 try {
-                    if (reader != null) reader.close();
+                    if (reader != null) {
+                        reader.close();
+                    }
                 } catch (IOException e) {}
             }
         }

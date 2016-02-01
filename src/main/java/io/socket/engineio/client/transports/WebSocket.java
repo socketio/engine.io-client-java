@@ -178,7 +178,9 @@ public class WebSocket extends Transport {
                         logger.fine("websocket closed before onclose event");
                     }
 
-                    if (0 == --total[0]) done.run();
+                    if (0 == --total[0]) {
+                        done.run();
+                    }
                 }
             });
         }

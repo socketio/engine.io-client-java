@@ -176,9 +176,13 @@ public class Socket extends Emitter {
             boolean ipv6 = hostname.split(":").length > 2;
             if (ipv6) {
                 int start = hostname.indexOf('[');
-                if (start != -1) hostname = hostname.substring(start + 1);
+                if (start != -1) {
+                    hostname = hostname.substring(start + 1);
+                }
                 int end = hostname.lastIndexOf(']');
-                if (end != -1) hostname = hostname.substring(0, end);
+                if (end != -1) {
+                    hostname = hostname.substring(0, end);
+                }
             }
             opts.hostname = hostname;
         }
@@ -324,7 +328,9 @@ public class Socket extends Emitter {
         final Listener onTransportOpen = new Listener() {
             @Override
             public void call(Object... args) {
-                if (failed[0]) return;
+                if (failed[0]) {
+                    return;
+                }
 
                 logger.fine(String.format("probe transport '%s' opened", name));
                 Packet<String> packet = new Packet<String>(Packet.PING, "probe");
@@ -332,22 +338,30 @@ public class Socket extends Emitter {
                 transport[0].once(Transport.EVENT_PACKET, new Listener() {
                     @Override
                     public void call(Object... args) {
-                        if (failed[0]) return;
+                        if (failed[0]) {
+                            return;
+                        }
 
                         Packet msg = (Packet)args[0];
                         if (Packet.PONG.equals(msg.type) && "probe".equals(msg.data)) {
                             logger.fine(String.format("probe transport '%s' pong", name));
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
-                            if (null == transport[0]) return;
+                            if (null == transport[0]) {
+                                return;
+                            }
                             Socket.priorWebsocketSuccess = WebSocket.NAME.equals(transport[0].name);
 
                             logger.fine(String.format("pausing current transport '%s'", self.transport.name));
                             ((Polling)self.transport).pause(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if (failed[0]) return;
-                                    if (ReadyState.CLOSED == self.readyState) return;
+                                    if (failed[0]) {
+                                        return;
+                                    }
+                                    if (ReadyState.CLOSED == self.readyState) {
+                                        return;
+                                    }
 
                                     logger.fine("changing transport and sending upgrade packet");
 
@@ -376,7 +390,9 @@ public class Socket extends Emitter {
         final Listener freezeTransport = new Listener() {
             @Override
             public void call(Object... args) {
-                if (failed[0]) return;
+                if (failed[0]) {
+                    return;
+                }
 
                 failed[0] = true;
 
@@ -511,7 +527,9 @@ public class Socket extends Emitter {
         this.pingTimeout = data.pingTimeout;
         this.onOpen();
         // In case open handler closes socket
-        if (ReadyState.CLOSED == this.readyState) return;
+        if (ReadyState.CLOSED == this.readyState) {
+            return;
+        }
         this.setPing();
 
         this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
@@ -541,7 +559,9 @@ public class Socket extends Emitter {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        if (self.readyState == ReadyState.CLOSED) return;
+                        if (self.readyState == ReadyState.CLOSED) {
+                            return;
+                        }
                         self.onClose("ping timeout");
                     }
                 });

@@ -186,7 +186,9 @@ public class Parser {
                     }
 
                     boolean ret = callback.call(packet, i + n, l);
-                    if (!ret) return;
+                    if (!ret) {
+                        return;
+                    }
                 }
 
                 i += n;
@@ -209,7 +211,9 @@ public class Parser {
             boolean numberTooLong = false;
             for (int i = 1; ; i++) {
                 int b = bufferTail.get(i) & 0xFF;
-                if (b == 255) break;
+                if (b == 255) {
+                    break;
+                }
                 // supports only integer
                 if (strLen.length() > MAX_INT_CHAR_LENGTH) {
                     numberTooLong = true;
