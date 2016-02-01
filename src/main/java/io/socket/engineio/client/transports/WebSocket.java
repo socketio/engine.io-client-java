@@ -221,12 +221,12 @@ public class WebSocket extends Transport {
             query.put(this.timestampParam, Yeast.yeast());
         }
 
-        String _query = ParseQS.encode(query);
-        if (_query.length() > 0) {
-            _query = "?" + _query;
+        String derivedQuery = ParseQS.encode(query);
+        if (derivedQuery.length() > 0) {
+            derivedQuery = "?" + derivedQuery;
         }
 
         boolean ipv6 = this.hostname.contains(":");
-        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + _query;
+        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + derivedQuery;
     }
 }

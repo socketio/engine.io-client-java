@@ -19,13 +19,13 @@ public class HandshakeData {
     /*package*/ HandshakeData(JSONObject data) throws JSONException {
         JSONArray upgrades = data.getJSONArray("upgrades");
         int length = upgrades.length();
-        String[] _upgrades = new String[length];
+        String[] tempUpgrades = new String[length];
         for (int i = 0; i < length; i ++) {
-            _upgrades[i] = upgrades.getString(i);
+            tempUpgrades[i] = upgrades.getString(i);
         }
 
         this.sid = data.getString("sid");
-        this.upgrades = _upgrades;
+        this.upgrades = tempUpgrades;
         this.pingInterval = data.getLong("pingInterval");
         this.pingTimeout = data.getLong("pingTimeout");
     }

@@ -29,9 +29,9 @@ public class Emitter {
         ConcurrentLinkedQueue<Listener> callbacks = this.callbacks.get(event);
         if (callbacks == null) {
             callbacks = new ConcurrentLinkedQueue <Listener>();
-            ConcurrentLinkedQueue<Listener> _callbacks = this.callbacks.putIfAbsent(event, callbacks);
-            if (_callbacks != null) {
-                callbacks = _callbacks;
+            ConcurrentLinkedQueue<Listener> tempCallbacks = this.callbacks.putIfAbsent(event, callbacks);
+            if (tempCallbacks != null) {
+                callbacks = tempCallbacks;
             }
         }
         callbacks.add(fn);

@@ -281,9 +281,9 @@ public class PollingXHR extends Polling {
                     int len = 0;
                     byte[] buffer = new byte[1024];
                     while ((len = input.read(buffer)) > 0) {
-                        byte[] _buffer = new byte[len];
-                        System.arraycopy(buffer, 0, _buffer, 0, len);
-                        buffers.add(_buffer);
+                        byte[] tempBuffer = new byte[len];
+                        System.arraycopy(buffer, 0, tempBuffer, 0, len);
+                        buffers.add(tempBuffer);
                         capacity += len;
                     }
                     ByteBuffer data = ByteBuffer.allocate(capacity);

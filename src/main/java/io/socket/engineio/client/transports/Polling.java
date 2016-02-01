@@ -128,8 +128,8 @@ abstract public class Polling extends Transport {
 
         if (data instanceof String) {
             @SuppressWarnings("unchecked")
-            Parser.DecodePayloadCallback<String> _callback = callback;
-            Parser.decodePayload((String)data, _callback);
+            Parser.DecodePayloadCallback<String> tempCallback = callback;
+            Parser.decodePayload((String)data, tempCallback);
         } else if (data instanceof byte[]) {
             Parser.decodePayload((byte[])data, callback);
         }
@@ -203,19 +203,19 @@ abstract public class Polling extends Transport {
             query.put(this.timestampParam, Yeast.yeast());
         }
 
-        String _query = ParseQS.encode(query);
+        String derivedQuery = ParseQS.encode(query);
 
         if (this.port > 0 && (("https".equals(schema) && this.port != 443)
                 || ("http".equals(schema) && this.port != 80))) {
             port = ":" + this.port;
         }
 
-        if (_query.length() > 0) {
-            _query = "?" + _query;
+        if (derivedQuery.length() > 0) {
+            derivedQuery = "?" + derivedQuery;
         }
 
         boolean ipv6 = this.hostname.contains(":");
-        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + _query;
+        return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + derivedQuery;
     }
 
     abstract protected void doWrite(byte[] data, Runnable fn);
