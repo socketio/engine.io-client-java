@@ -6,3 +6,4 @@ io.socket.global
 io.socket.parseqs
 io.socket.thread
 io.socket.utf8
+io.socket.yeast
