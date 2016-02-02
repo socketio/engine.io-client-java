@@ -11,7 +11,7 @@ import java.util.List;
 public class UTF8 {
 
     private static final String INVALID_CONTINUATION_BYTE = "Invalid continuation byte";
-	private static int[] byteArray;
+    private static int[] byteArray;
     private static int byteCount;
     private static int byteIndex;
 
