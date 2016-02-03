@@ -14,7 +14,7 @@ public class Parser {
 
     private static final int MAX_INT_CHAR_LENGTH = String.valueOf(Integer.MAX_VALUE).length();
 
-    public static final int protocol = 3;
+    public static final int PROTOCOL = 3;
 
     private static final Map<String, Integer> packets = new HashMap<String, Integer>() {{
         put(Packet.OPEN, 0);

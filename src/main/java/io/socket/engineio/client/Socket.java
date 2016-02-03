@@ -31,6 +31,9 @@ public class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
 
+    private static final String PROBE_ERROR = "probe error";
+
+
     private enum ReadyState {
         OPENING, OPEN, CLOSING, CLOSED;
 
@@ -95,7 +98,7 @@ public class Socket extends Emitter {
     /**
      * The protocol version.
      */
-    public static final int protocol = Parser.protocol;
+    public static final int PROTOCOL = Parser.PROTOCOL;
 
     private static boolean priorWebsocketSuccess = false;
 
@@ -128,14 +131,12 @@ public class Socket extends Emitter {
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
-
-    public static void setDefaultSSLContext(SSLContext sslContext) {
-        defaultSSLContext = sslContext;
-    }
-
-    public static void setDefaultHostnameVerifier(HostnameVerifier hostnameVerifier) {
-        defaultHostnameVerifier = hostnameVerifier;
-    }
+    private final Listener onHeartbeatAsListener = new Listener() {
+        @Override
+        public void call(Object... args) {
+            Socket.this.onHeartbeat(args.length > 0 ? (Long)args[0]: 0);
+        }
+    };
 
     public Socket() {
         this(new Options());
@@ -206,6 +207,14 @@ public class Socket extends Emitter {
         this.hostnameVerifier = opts.hostnameVerifier != null ? opts.hostnameVerifier : defaultHostnameVerifier;
     }
 
+    public static void setDefaultSSLContext(SSLContext sslContext) {
+        defaultSSLContext = sslContext;
+    }
+
+    public static void setDefaultHostnameVerifier(HostnameVerifier hostnameVerifier) {
+        defaultHostnameVerifier = hostnameVerifier;
+    }
+
     /**
      * Connects the client.
      *
@@ -244,7 +253,7 @@ public class Socket extends Emitter {
         logger.fine(String.format("creating transport '%s'", name));
         Map<String, String> query = new HashMap<String, String>(this.query);
 
-        query.put("EIO", String.valueOf(Parser.protocol));
+        query.put("EIO", String.valueOf(Parser.PROTOCOL));
         query.put("transport", name);
         if (this.id != null) {
             query.put("sid", this.id);
@@ -364,7 +373,7 @@ public class Socket extends Emitter {
                             });
                         } else {
                             logger.fine(String.format("probe transport '%s' failed", name));
-                            EngineIOException err = new EngineIOException("probe error");
+                            EngineIOException err = new EngineIOException(PROBE_ERROR);
                             err.transport = transport[0].name;
                             self.emit(EVENT_UPGRADE_ERROR, err);
                         }
@@ -394,11 +403,11 @@ public class Socket extends Emitter {
                 Object err = args[0];
                 EngineIOException error;
                 if (err instanceof Exception) {
-                    error = new EngineIOException("probe error", (Exception)err);
+                    error = new EngineIOException(PROBE_ERROR, (Exception)err);
                 } else if (err instanceof String) {
                     error = new EngineIOException("probe error: " + (String)err);
                 } else {
-                    error = new EngineIOException("probe error");
+                    error = new EngineIOException(PROBE_ERROR);
                 }
                 error.transport = transport[0].name;
 
@@ -517,13 +526,6 @@ public class Socket extends Emitter {
         this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
         this.on(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
     }
-
-    private final Listener onHeartbeatAsListener = new Listener() {
-        @Override
-        public void call(Object... args) {
-            Socket.this.onHeartbeat(args.length > 0 ? (Long)args[0]: 0);
-        }
-    };
 
     private void onHeartbeat(long timeout) {
         if (this.pingTimeoutTimer != null) {

@@ -10,6 +10,7 @@ import java.util.List;
  */
 public class UTF8 {
 
+    private static final String INVALID_CONTINUATION_BYTE = "Invalid continuation byte";
     private static int[] byteArray;
     private static int byteCount;
     private static int byteIndex;
@@ -103,7 +104,7 @@ public class UTF8 {
             if (codePoint >= 0x80) {
                 return codePoint;
             } else {
-                throw new UTF8Exception("Invalid continuation byte");
+                throw new UTF8Exception(INVALID_CONTINUATION_BYTE);
             }
         }
 
@@ -115,7 +116,7 @@ public class UTF8 {
                 checkScalarValue(codePoint);
                 return codePoint;
             } else {
-                throw new UTF8Exception("Invalid continuation byte");
+                throw new UTF8Exception(INVALID_CONTINUATION_BYTE);
             }
         }
 
@@ -129,7 +130,7 @@ public class UTF8 {
             }
         }
 
-        throw new UTF8Exception("Invalid continuation byte");
+        throw new UTF8Exception(INVALID_CONTINUATION_BYTE);
     }
 
     private static int readContinuationByte() throws UTF8Exception {
@@ -144,7 +145,7 @@ public class UTF8 {
             return continuationByte & 0x3F;
         }
 
-        throw new UTF8Exception("Invalid continuation byte");
+        throw new UTF8Exception(INVALID_CONTINUATION_BYTE);
     }
 
     private static String ucs2encode(int[] array) {
