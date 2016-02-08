@@ -8,17 +8,15 @@ import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.*;
 import okhttp3.ws.WebSocketCall;
 import okhttp3.ws.WebSocketListener;
 import okio.Buffer;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +58,21 @@ public class WebSocket extends Transport {
         }
         if (this.hostnameVerifier != null) {
             clientBuilder.hostnameVerifier(this.hostnameVerifier);
+        }
+        if (proxyHost != null && !proxyHost.isEmpty() && proxyPort >= 0) {
+            clientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
+        }
+        if (proxyLogin != null && !proxyLogin.isEmpty()) {
+            final String credentials = Credentials.basic(proxyLogin, proxyPassword);
+
+            clientBuilder.proxyAuthenticator(new Authenticator() {
+                @Override
+                public Request authenticate(Route route, Response response) throws IOException {
+                    return response.request().newBuilder()
+                            .header("Proxy-Authorization", credentials)
+                            .build();
+                }
+            });
         }
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {

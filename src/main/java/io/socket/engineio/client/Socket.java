@@ -128,6 +128,11 @@ public class Socket extends Emitter {
     private Future pingIntervalTimer;
     private SSLContext sslContext;
     private HostnameVerifier hostnameVerifier;
+    public String proxyHost;
+    public int proxyPort = -1;
+    public String proxyLogin;
+    public String proxyPassword;
+    private HttpConnectionProvider httpConnectionProvider;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -205,6 +210,11 @@ public class Socket extends Emitter {
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
         this.hostnameVerifier = opts.hostnameVerifier != null ? opts.hostnameVerifier : defaultHostnameVerifier;
+        this.proxyHost = opts.proxyHost;
+        this.proxyPort = opts.proxyPort;
+        this.proxyLogin = opts.proxyLogin;
+        this.proxyPassword = opts.proxyPassword;
+        this.httpConnectionProvider = opts.httpConnectionProvider;
     }
 
     public static void setDefaultSSLContext(SSLContext sslContext) {
@@ -271,6 +281,11 @@ public class Socket extends Emitter {
         opts.policyPort = this.policyPort;
         opts.socket = this;
         opts.hostnameVerifier = this.hostnameVerifier;
+        opts.proxyHost = this.proxyHost;
+        opts.proxyPort = this.proxyPort;
+        opts.proxyLogin = this.proxyLogin;
+        opts.proxyPassword = this.proxyPassword;
+        opts.httpConnectionProvider = this.httpConnectionProvider;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {
