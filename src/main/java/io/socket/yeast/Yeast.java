@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * A Java implementation of yeast. https://github.com/unshiftio/yeast
  */
-public class Yeast {
+public final class Yeast {
     private static char[] alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_".toCharArray();
 
     private static int length = alphabet.length;
@@ -18,6 +18,8 @@ public class Yeast {
             map.put(alphabet[i], i);
         }
     }
+
+    private Yeast () {}
 
     private static int seed = 0;
 

@@ -90,11 +90,6 @@ public class Socket extends Emitter {
      */
     public static final String EVENT_TRANSPORT = "transport";
 
-    private static final Runnable noop = new Runnable() {
-        @Override
-        public void run() {}
-    };
-
     /**
      * The protocol version.
      */
