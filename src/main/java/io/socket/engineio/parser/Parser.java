@@ -45,10 +45,10 @@ public class Parser {
     public static void encodePacket(Packet packet, boolean utf8encode, EncodeCallback callback) throws UTF8Exception {
         if (packet.data instanceof byte[]) {
             @SuppressWarnings("unchecked")
-            Packet<byte[]> _packet = packet;
+            Packet<byte[]> packetToEncode = packet;
             @SuppressWarnings("unchecked")
-            EncodeCallback<byte[]> _callback = callback;
-            encodeByteArray(_packet, _callback);
+            EncodeCallback<byte[]> callbackToEncode = callback;
+            encodeByteArray(packetToEncode, callbackToEncode);
             return;
         }
 
@@ -59,8 +59,8 @@ public class Parser {
         }
 
         @SuppressWarnings("unchecked")
-        EncodeCallback<String> _callback = callback;
-        _callback.call(encoded);
+        EncodeCallback<String> tempCallback = callback;
+        tempCallback.call(encoded);
     }
 
     private static void encodeByteArray(Packet<byte[]> packet, EncodeCallback<byte[]> callback) {
@@ -219,8 +219,8 @@ public class Parser {
             }
             if (numberTooLong) {
                 @SuppressWarnings("unchecked")
-                DecodePayloadCallback<String> _callback = callback;
-                _callback.call(err, 0, 1);
+                DecodePayloadCallback<String> tempCallback = callback;
+                tempCallback.call(err, 0, 1);
                 return;
             }
             bufferTail.position(strLen.length() + 1);
@@ -247,12 +247,12 @@ public class Parser {
             Object buffer = buffers.get(i);
             if (buffer instanceof String) {
                 @SuppressWarnings("unchecked")
-                DecodePayloadCallback<String> _callback = callback;
-                _callback.call(decodePacket((String)buffer, true), i, total);
+                DecodePayloadCallback<String> tempCallback = callback;
+                tempCallback.call(decodePacket((String)buffer, true), i, total);
             } else if (buffer instanceof byte[]) {
                 @SuppressWarnings("unchecked")
-                DecodePayloadCallback<byte[]> _callback = callback;
-                _callback.call(decodePacket((byte[])buffer), i, total);
+                DecodePayloadCallback<byte[]> tempCallback = callback;
+                tempCallback.call(decodePacket((byte[])buffer), i, total);
             }
         }
     }
