@@ -19,9 +19,6 @@ public class PollingXHR extends Polling {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
-    private Request sendXhr;
-    private Request pollXhr;
-
     public PollingXHR(Transport.Options opts) {
         super(opts);
     }
@@ -92,7 +89,6 @@ public class PollingXHR extends Polling {
             }
         });
         req.create();
-        this.sendXhr = req;
     }
 
     @Override
@@ -129,7 +125,6 @@ public class PollingXHR extends Polling {
             }
         });
         req.create();
-        this.pollXhr = req;
     }
 
     public static class Request extends Emitter {

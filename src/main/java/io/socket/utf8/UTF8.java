@@ -8,12 +8,14 @@ import java.util.List;
  *
  * @see <a href="https://github.com/mathiasbynens/utf8.js">https://github.com/mathiasbynens/utf8.js</a>
  */
-public class UTF8 {
+public final class UTF8 {
 
     private static final String INVALID_CONTINUATION_BYTE = "Invalid continuation byte";
     private static int[] byteArray;
     private static int byteCount;
     private static int byteIndex;
+
+    private UTF8 () {}
 
     public static String encode(String string) throws UTF8Exception {
         int[] codePoints = ucs2decode(string);
