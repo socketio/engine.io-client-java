@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public class UTF8Exception extends IOException {
 
-    public String data;
+    private String data;
 
     public UTF8Exception() {
         super();
@@ -20,5 +20,13 @@ public class UTF8Exception extends IOException {
 
     public UTF8Exception(Throwable cause) {
         super(cause);
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
     }
 }
