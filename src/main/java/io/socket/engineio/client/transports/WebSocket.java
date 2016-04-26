@@ -1,6 +1,7 @@
 package io.socket.engineio.client.transports;
 
 
+import io.socket.engineio.client.CloseException;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
@@ -18,6 +19,7 @@ import okhttp3.ws.WebSocketListener;
 import okio.Buffer;
 
 import javax.net.ssl.SSLSocketFactory;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -163,7 +165,7 @@ public class WebSocket extends Transport {
             }
         };
 
-        final int[] total = new int[] { packets.length };
+        final int[] total = new int[]{packets.length};
         for (Packet packet : packets) {
             Parser.encodePacket(packet, new Parser.EncodeCallback() {
                 @Override
@@ -176,6 +178,12 @@ public class WebSocket extends Transport {
                         }
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
+                    } catch (IllegalStateException e2) {
+                        if (packet instanceof String) {
+                            self.onError("Close error", new CloseException((String) packet));
+                        } else {
+                            self.onError("Close error", new CloseException("Unknown message"));
+                        }
                     }
 
                     if (0 == --total[0]) done.run();
