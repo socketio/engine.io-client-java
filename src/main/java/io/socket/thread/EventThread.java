@@ -4,12 +4,16 @@ package io.socket.thread;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
  * The thread for event loop. All non-background tasks run within this thread.
  */
 public class EventThread extends Thread {
+
+    private static final Logger logger = Logger.getLogger(EventThread.class.getName());
 
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
         @Override
@@ -73,6 +77,9 @@ public class EventThread extends Thread {
             public void run() {
                 try {
                     task.run();
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Task threw exception", t);
+                    throw t;
                 } finally {
                     synchronized (EventThread.class) {
                         counter--;
