@@ -11,7 +11,8 @@ public final class Yeast {
     private static char[] alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_".toCharArray();
 
     private static int length = alphabet.length;
-
+    private static int seed = 0;
+    private static String prev;
     private static Map<Character, Integer> map = new HashMap<Character, Integer>(length);
     static {
         for (int i = 0; i < length; i++) {
@@ -21,17 +22,13 @@ public final class Yeast {
 
     private Yeast () {}
 
-    private static int seed = 0;
-
-    private static String prev;
-
     public static String encode(long num) {
         final StringBuilder encoded = new StringBuilder();
-
+        long dividedNum;
         do {
             encoded.insert(0, alphabet[(int)(num % length)]);
-            num = (long)Math.floor(num / length);
-        } while (num > 0);
+            dividedNum = num / length;
+        } while (dividedNum > 0);
 
         return encoded.toString();
     }
