@@ -15,8 +15,6 @@ import okio.Buffer;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +57,8 @@ public class WebSocket extends Transport {
         if (this.hostnameVerifier != null) {
             clientBuilder.hostnameVerifier(this.hostnameVerifier);
         }
-        if (proxyHost != null && !proxyHost.isEmpty() && proxyPort >= 0) {
-            clientBuilder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort)));
+        if (proxy != null) {
+            clientBuilder.proxy(proxy);
         }
         if (proxyLogin != null && !proxyLogin.isEmpty()) {
             final String credentials = Credentials.basic(proxyLogin, proxyPassword);
