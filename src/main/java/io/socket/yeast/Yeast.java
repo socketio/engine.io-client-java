@@ -24,10 +24,10 @@ public final class Yeast {
 
     public static String encode(long num) {
         final StringBuilder encoded = new StringBuilder();
-        long dividedNum;
+        long dividedNum = num;
         do {
-            encoded.insert(0, alphabet[(int)(num % length)]);
-            dividedNum = num / length;
+            encoded.insert(0, alphabet[(int)(dividedNum % length)]);
+            dividedNum = dividedNum / length;
         } while (dividedNum > 0);
 
         return encoded.toString();
