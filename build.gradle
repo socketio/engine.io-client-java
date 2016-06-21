@@ -15,10 +15,9 @@ repositories {
 }
 
 apply plugin: 'java'
+apply plugin: 'maven'
 
-test{
-
-}
+group = 'com.github.jszczygiel'
 
 dependencies {
     compile 'org.codeartisans:org.json:20150729'
