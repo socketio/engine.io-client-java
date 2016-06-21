@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "engine.io": "1.6.8"
+  }
+}
