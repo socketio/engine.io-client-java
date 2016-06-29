@@ -3,7 +3,6 @@ package io.socket.engineio.client.transports;
 import com.neovisionaries.ws.client.WebSocketAdapter;
 import com.neovisionaries.ws.client.WebSocketCloseCode;
 import com.neovisionaries.ws.client.WebSocketException;
-import com.neovisionaries.ws.client.WebSocketExtension;
 import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 
@@ -48,7 +47,9 @@ public class WebSocket extends Transport {
 
         try {
             ws = webSocketFactory.createSocket(uri());
-            ws.addExtension(WebSocketExtension.PERMESSAGE_DEFLATE);
+            for (String webSocketExtension : webSocketExtensions) {
+                ws.addExtension(webSocketExtension);
+            }
             ws.setMaxPayloadSize(8192);
 
             for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
