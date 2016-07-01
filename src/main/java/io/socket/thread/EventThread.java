@@ -20,6 +20,7 @@ public class EventThread extends Thread {
         public Thread newThread(Runnable runnable) {
             thread = new EventThread(runnable);
             thread.setName("EventThread");
+            thread.setDaemon(Thread.currentThread().isDaemon());
             return thread;
         }
     };
