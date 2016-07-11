@@ -1,5 +1,16 @@
 package io.socket.engineio.client.transports;
 
+import com.neovisionaries.ws.client.WebSocketAdapter;
+import com.neovisionaries.ws.client.WebSocketCloseCode;
+import com.neovisionaries.ws.client.WebSocketException;
+import com.neovisionaries.ws.client.WebSocketFactory;
+import com.neovisionaries.ws.client.WebSocketFrame;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
 
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
@@ -8,26 +19,6 @@ import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import okhttp3.ws.WebSocketCall;
-import okhttp3.ws.WebSocketListener;
-import okio.Buffer;
-
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-
-import static okhttp3.ws.WebSocket.BINARY;
-import static okhttp3.ws.WebSocket.TEXT;
 
 public class WebSocket extends Transport {
 
@@ -35,8 +26,7 @@ public class WebSocket extends Transport {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
-    private okhttp3.ws.WebSocket ws;
-    private WebSocketCall wsCall;
+    private com.neovisionaries.ws.client.WebSocket ws;
 
     public WebSocket(Options opts) {
         super(opts);
@@ -47,101 +37,93 @@ public class WebSocket extends Transport {
         Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
+        WebSocketFactory webSocketFactory = new WebSocketFactory();
+        webSocketFactory.setConnectionTimeout(10000);
         final WebSocket self = this;
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
-                .connectTimeout(0, TimeUnit.MILLISECONDS)
-                .readTimeout(0, TimeUnit.MILLISECONDS)
-                .writeTimeout(0, TimeUnit.MILLISECONDS);
 
         if (this.sslContext != null) {
-            SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
-            clientBuilder.sslSocketFactory(factory);
+            webSocketFactory.setSSLContext(sslContext);
         }
-        if (this.hostnameVerifier != null) {
-            clientBuilder.hostnameVerifier(this.hostnameVerifier);
-        }
-        Request.Builder builder = new Request.Builder().url(uri());
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            for (String v : entry.getValue()) {
-                builder.addHeader(entry.getKey(), v);
-            }
-        }
-        final Request request = builder.build();
-        final OkHttpClient client = clientBuilder.build();
-        wsCall = WebSocketCall.create(client, request);
-        wsCall.enqueue(new WebSocketListener() {
-            @Override
-            public void onOpen(okhttp3.ws.WebSocket webSocket, Response response) {
-                ws = webSocket;
-                final Map<String, List<String>> headers = response.headers().toMultimap();
-                EventThread.exec(new Runnable() {
-                    @Override
-                    public void run() {
-                        self.emit(EVENT_RESPONSE_HEADERS, headers);
-                        self.onOpen();
-                    }
-                });
-            }
 
-            @Override
-            public void onMessage(final ResponseBody responseBody) throws IOException {
-                Object data = null;
-                if (responseBody.contentType() == TEXT) {
-                    data = responseBody.string();
-                } else if (responseBody.contentType() == BINARY) {
-                    data = responseBody.source().readByteArray();
-                } else {
+        try {
+            ws = webSocketFactory.createSocket(uri());
+            for (String webSocketExtension : webSocketExtensions) {
+                ws.addExtension(webSocketExtension);
+            }
+            ws.setMaxPayloadSize(8192);
+
+            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+                for (String v : entry.getValue()) {
+                    ws.addHeader(entry.getKey(), v);
+                }
+            }
+            ws.addListener(new WebSocketAdapter() {
+                @Override
+                public void onConnected(com.neovisionaries.ws.client.WebSocket websocket, final Map<String, List<String>> headers) throws Exception {
+                    ws = websocket;
                     EventThread.exec(new Runnable() {
                         @Override
                         public void run() {
-                            self.onError("Unknown payload type: " + responseBody.contentType(), new IllegalStateException());
+                            self.emit(EVENT_RESPONSE_HEADERS, headers);
+                            self.onOpen();
                         }
                     });
                 }
-                responseBody.source().close();
-                final Object finalData = data;
-                EventThread.exec(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (finalData == null) {
-                            return;
+
+                @Override
+                public void onBinaryMessage(com.neovisionaries.ws.client.WebSocket websocket, final byte[] binary) throws Exception {
+                    EventThread.exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (binary != null) {
+                                self.onData(binary);
+                            }
                         }
-                        if (finalData instanceof String) {
-                            self.onData((String) finalData);
-                        } else {
-                            self.onData((byte[]) finalData);
+                    });
+                }
+
+                @Override
+                public void onTextMessage(com.neovisionaries.ws.client.WebSocket websocket, final String text) throws Exception {
+                    EventThread.exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (text != null) {
+                                self.onData(text);
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
-            }
+                @Override
+                public void onDisconnected(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
+                    EventThread.exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onClose();
+                        }
+                    });
+                }
 
-            @Override
-            public void onPong(Buffer payload) {
-            }
+                @Override
+                public void onError(com.neovisionaries.ws.client.WebSocket websocket, final WebSocketException cause) throws Exception {
+                    EventThread.exec(new Runnable() {
+                        @Override
+                        public void run() {
+                            self.onError("websocket error", cause);
+                        }
+                    });
+                }
+            });
+            ws.connectAsynchronously();
 
-            @Override
-            public void onClose(int code, String reason) {
-                EventThread.exec(new Runnable() {
-                    @Override
-                    public void run() {
-                        self.onClose();
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(final IOException e, final Response response) {
-                EventThread.exec(new Runnable() {
-                    @Override
-                    public void run() {
-                        self.onError("websocket error", e);
-                    }
-                });
-            }
-        });
-        client.dispatcher().executorService().shutdown();
+        } catch (final Exception e) {
+            EventThread.exec(new Runnable() {
+                @Override
+                public void run() {
+                    self.onError("websocket error", e);
+                }
+            });
+        }
     }
 
     protected void write(Packet[] packets) throws UTF8Exception {
@@ -163,22 +145,20 @@ public class WebSocket extends Transport {
             }
         };
 
-        final int[] total = new int[] { packets.length };
+        final int[] total = new int[]{packets.length};
         for (Packet packet : packets) {
             Parser.encodePacket(packet, new Parser.EncodeCallback() {
                 @Override
-                public void call(Object packet) {
-                    try {
-                        if (packet instanceof String) {
-                            self.ws.sendMessage(RequestBody.create(TEXT, (String) packet));
-                        } else if (packet instanceof byte[]) {
-                            self.ws.sendMessage(RequestBody.create(BINARY, (byte[]) packet));
-                        }
-                    } catch (IOException e) {
-                        logger.fine("websocket closed before onclose event");
+                public void call(Object packet1) {
+                    if (packet1 instanceof String) {
+                        self.ws.sendText((String) packet1);
+                    } else if (packet1 instanceof byte[]) {
+                        self.ws.sendBinary((byte[]) packet1);
                     }
 
-                    if (0 == --total[0]) done.run();
+                    if (0 == --total[0]) {
+                        done.run();
+                    }
                 }
             });
         }
@@ -190,14 +170,9 @@ public class WebSocket extends Transport {
     }
 
     protected void doClose() {
-        if (wsCall != null) {
-            wsCall.cancel();
-        }
         if (ws != null) {
             try {
-                ws.close(1000, "");
-            } catch (IOException e) {
-                // websocket already closed
+                ws.disconnect(WebSocketCloseCode.NORMAL, null);
             } catch (IllegalStateException e) {
                 // websocket already closed
             }
@@ -207,7 +182,7 @@ public class WebSocket extends Transport {
     protected String uri() {
         Map<String, String> query = this.query;
         if (query == null) {
-            query = new HashMap<String, String>();
+            query = new HashMap<>();
         }
         String schema = this.secure ? "wss" : "ws";
         String port = "";
