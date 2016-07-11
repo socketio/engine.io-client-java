@@ -114,7 +114,7 @@ public class WebSocket extends Transport {
                     });
                 }
             });
-            ws.connect();
+            ws.connectAsynchronously();
 
         } catch (final Exception e) {
             EventThread.exec(new Runnable() {
