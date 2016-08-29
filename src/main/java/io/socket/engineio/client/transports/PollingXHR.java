@@ -229,7 +229,6 @@ public class PollingXHR extends Polling {
 
         private void onSuccess() {
             this.emit(EVENT_SUCCESS);
-            this.cleanup();
         }
 
         private void onData(String data) {
@@ -244,7 +243,6 @@ public class PollingXHR extends Polling {
 
         private void onError(Exception err) {
             this.emit(EVENT_ERROR, err);
-            this.cleanup();
         }
 
         private void onRequestHeaders(Map<String, List<String>> headers) {
@@ -304,10 +302,8 @@ public class PollingXHR extends Polling {
                 try {
                     if (reader != null) reader.close();
                 } catch (IOException e) {}
+                this.cleanup();
             }
-        }
-        public void abort() {
-            this.cleanup();
         }
 
         public static class Options {
