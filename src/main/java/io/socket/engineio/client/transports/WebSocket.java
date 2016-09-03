@@ -190,9 +190,6 @@ public class WebSocket extends Transport {
     }
 
     protected void doClose() {
-        if (wsCall != null) {
-            wsCall.cancel();
-        }
         if (ws != null) {
             try {
                 ws.close(1000, "");
@@ -201,6 +198,9 @@ public class WebSocket extends Transport {
             } catch (IllegalStateException e) {
                 // websocket already closed
             }
+        }
+        if (wsCall != null) {
+            wsCall.cancel();
         }
     }
 
