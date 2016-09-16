@@ -4,8 +4,6 @@ import java.io.IOException;
 
 public class UTF8Exception extends IOException {
 
-    public String data;
-
     public UTF8Exception() {
         super();
     }
