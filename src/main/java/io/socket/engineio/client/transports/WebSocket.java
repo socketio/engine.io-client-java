@@ -174,8 +174,13 @@ public class WebSocket extends Transport {
             }
         };
 
-        final int[] total = new int[] { packets.length };
+        final int[] total = new int[]{packets.length};
         for (Packet packet : packets) {
+            if (this.readyState != ReadyState.OPENING && this.readyState != ReadyState.OPEN) {
+                // Ensure we don't try to send anymore packets if the socket ends up being closed due to an exception
+                break;
+            }
+
             Parser.encodePacket(packet, new Parser.EncodeCallback() {
                 @Override
                 public void call(Object packet) {
@@ -187,6 +192,7 @@ public class WebSocket extends Transport {
                         }
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
+                        close();
                     }
 
                     if (0 == --total[0]) done.run();
