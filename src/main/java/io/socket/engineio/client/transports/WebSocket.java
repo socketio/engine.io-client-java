@@ -8,11 +8,7 @@ import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import okhttp3.*;
 import okhttp3.ws.WebSocketCall;
 import okhttp3.ws.WebSocketListener;
 import okio.Buffer;
@@ -60,6 +56,21 @@ public class WebSocket extends Transport {
         }
         if (this.hostnameVerifier != null) {
             clientBuilder.hostnameVerifier(this.hostnameVerifier);
+        }
+        if (proxy != null) {
+            clientBuilder.proxy(proxy);
+        }
+        if (proxyLogin != null && !proxyLogin.isEmpty()) {
+            final String credentials = Credentials.basic(proxyLogin, proxyPassword);
+
+            clientBuilder.proxyAuthenticator(new Authenticator() {
+                @Override
+                public Request authenticate(Route route, Response response) throws IOException {
+                    return response.request().newBuilder()
+                            .header("Proxy-Authorization", credentials)
+                            .build();
+                }
+            });
         }
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {

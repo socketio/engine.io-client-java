@@ -2,14 +2,15 @@ package io.socket.engineio.client.transports;
 
 
 import io.socket.emitter.Emitter;
-import io.socket.thread.EventThread;
 import io.socket.engineio.client.Transport;
+import io.socket.thread.EventThread;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -34,6 +35,7 @@ public class PollingXHR extends Polling {
         opts.uri = this.uri();
         opts.sslContext = this.sslContext;
         opts.hostnameVerifier = this.hostnameVerifier;
+        opts.proxy = this.proxy;
 
         Request req = new Request(opts);
 
@@ -144,6 +146,7 @@ public class PollingXHR extends Polling {
         private SSLContext sslContext;
         private HttpURLConnection xhr;
         private HostnameVerifier hostnameVerifier;
+        private Proxy proxy;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
@@ -151,6 +154,7 @@ public class PollingXHR extends Polling {
             this.data = opts.data;
             this.sslContext = opts.sslContext;
             this.hostnameVerifier = opts.hostnameVerifier;
+            this.proxy = opts.proxy;
         }
 
         public void create() {
@@ -158,7 +162,8 @@ public class PollingXHR extends Polling {
             try {
                 logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
                 URL url = new URL(this.uri);
-                xhr = (HttpURLConnection)url.openConnection();
+                xhr = proxy != null ? (HttpURLConnection) url.openConnection(proxy)
+                        : (HttpURLConnection) url.openConnection();
                 xhr.setRequestMethod(this.method);
             } catch (IOException e) {
                 this.onError(e);
@@ -313,6 +318,7 @@ public class PollingXHR extends Polling {
             public byte[] data;
             public SSLContext sslContext;
             public HostnameVerifier hostnameVerifier;
+            public Proxy proxy;
         }
     }
 }

@@ -9,6 +9,7 @@ import io.socket.utf8.UTF8Exception;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import java.net.Proxy;
 import java.util.Map;
 
 public abstract class Transport extends Emitter {
@@ -43,6 +44,9 @@ public abstract class Transport extends Emitter {
     protected SSLContext sslContext;
     protected Socket socket;
     protected HostnameVerifier hostnameVerifier;
+    protected Proxy proxy;
+    protected String proxyLogin;
+    protected String proxyPassword;
 
     protected ReadyState readyState;
 
@@ -57,6 +61,9 @@ public abstract class Transport extends Emitter {
         this.sslContext = opts.sslContext;
         this.socket = opts.socket;
         this.hostnameVerifier = opts.hostnameVerifier;
+        this.proxy = opts.proxy;
+        this.proxyLogin = opts.proxyLogin;
+        this.proxyPassword = opts.proxyPassword;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -152,5 +159,8 @@ public abstract class Transport extends Emitter {
         public SSLContext sslContext;
         public HostnameVerifier hostnameVerifier;
         protected Socket socket;
+        public Proxy proxy;
+        public String proxyLogin;
+        public String proxyPassword;
     }
 }
