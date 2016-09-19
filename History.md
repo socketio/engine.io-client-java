@@ -1,3 +1,19 @@
+
+0.8.0 / 2016-09-19
+==================
+
+* update okhttp-ws [VicV]
+* proxy support [Eugene-Kudelevsky]
+* several code improvements [georgekankava]
+* EventThread: log exceptions [Dominik Auf der Maur]
+* EventThread: extend deamon property from parent thread [vach]
+* Yeast: fix infinite loop bug [erikogenvik]
+* WebSocket: close the web socket after sending a close frame [dave-r12]
+* WebSocket: fix "must call close()" crash [chendrak]
+* Polling: disconnect after closing stream/reader [wzurita]
+* UTF8Exception: remove the data property
+* test: use TLSv1
+
 0.7.0 / 2016-02-01
 ==================
 
