@@ -192,7 +192,7 @@ public class WebSocket extends Transport {
                         }
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
-                        close();
+                        doClose();
                     }
 
                     if (0 == --total[0]) done.run();
