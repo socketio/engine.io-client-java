@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.socket</groupId>
   <artifactId>engine.io-client</artifactId>
-  <version>0.8.1-SNAPSHOT</version>
+  <version>0.8.1</version>
   <packaging>jar</packaging>
   <name>engine.io-client</name>
   <description>Engine.IO Client Library for Java</description>
@@ -30,7 +30,7 @@
     <url>https://github.com/socketio/engine.io-client-java</url>
     <connection>scm:git:https://github.com/socketio/engine.io-client-java.git</connection>
     <developerConnection>scm:git:https://github.com/socketio/engine.io-client-java.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>engine.io-client-0.8.1</tag>
   </scm>
 
   <developers>
