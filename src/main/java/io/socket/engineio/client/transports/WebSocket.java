@@ -192,7 +192,6 @@ public class WebSocket extends Transport {
                         }
                     } catch (IllegalStateException e) {
                         logger.fine("websocket closed before we could write");
-                        doClose();
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
                         doClose();
