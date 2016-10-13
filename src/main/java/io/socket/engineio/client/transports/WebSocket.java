@@ -190,6 +190,8 @@ public class WebSocket extends Transport {
                         } else if (packet instanceof byte[]) {
                             self.ws.sendMessage(RequestBody.create(BINARY, (byte[]) packet));
                         }
+                    } catch (IllegalStateException e) {
+                        logger.fine("websocket closed before we could write");
                     } catch (IOException e) {
                         logger.fine("websocket closed before onclose event");
                         doClose();
