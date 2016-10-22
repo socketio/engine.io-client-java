@@ -1,4 +1,9 @@
 
+0.8.2 / 2016-10-22
+==================
+
+* fix IllegalStateException error of websocket [eckovation]
+
 0.8.1 / 2016-09-27
 ==================
 
