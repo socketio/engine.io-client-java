@@ -203,6 +203,20 @@ public class WebSocket extends Transport {
         }
     }
 
+    /**
+     * websocket impl need to call ping periodically,
+     * see this: https://github.com/square/okhttp/issues/1985
+     */
+    public void doPing() {
+      if (ws != null) {
+          try {
+              ws.sendPing(null);
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+      }
+    }
+
     @Override
     protected void onClose() {
         super.onClose();
