@@ -590,6 +590,10 @@ public class Socket extends Emitter {
                         Socket.this.emit(EVENT_PING);
                     }
                 });
+
+              if (transport != null && transport instanceof WebSocket) {
+                  ((WebSocket)transport).doPing();
+              }
             }
         });
     }
