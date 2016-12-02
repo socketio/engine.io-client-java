@@ -9,8 +9,11 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import java.io.*;
+import java.net.CookieManager;
 import java.net.HttpURLConnection;
+import java.net.HttpCookie;
 import java.net.Proxy;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -20,8 +23,13 @@ public class PollingXHR extends Polling {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
+    CookieManager cookies;
+
     public PollingXHR(Transport.Options opts) {
         super(opts);
+        if(opts.keepCookies) {
+            cookies = new CookieManager();
+        }
     }
 
     protected Request request() {
@@ -37,7 +45,7 @@ public class PollingXHR extends Polling {
         opts.hostnameVerifier = this.hostnameVerifier;
         opts.proxy = this.proxy;
 
-        Request req = new Request(opts);
+        Request req = new Request(opts, cookies);
 
         final PollingXHR self = this;
         req.on(Request.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
@@ -148,13 +156,16 @@ public class PollingXHR extends Polling {
         private HostnameVerifier hostnameVerifier;
         private Proxy proxy;
 
-        public Request(Options opts) {
+        CookieManager cookies;
+
+        public Request(Options opts, CookieManager cookies) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
             this.sslContext = opts.sslContext;
             this.hostnameVerifier = opts.hostnameVerifier;
             this.proxy = opts.proxy;
+            this.cookies = cookies;
         }
 
         public void create() {
@@ -165,6 +176,10 @@ public class PollingXHR extends Polling {
                 xhr = proxy != null ? (HttpURLConnection) url.openConnection(proxy)
                         : (HttpURLConnection) url.openConnection();
                 xhr.setRequestMethod(this.method);
+                setCookies(xhr);
+            } catch (URISyntaxException e){
+                self.onError(e);
+                return;
             } catch (IOException e) {
                 this.onError(e);
                 return;
@@ -210,6 +225,7 @@ public class PollingXHR extends Polling {
 
                         Map<String, List<String>> headers = xhr.getHeaderFields();
                         self.onResponseHeaders(headers);
+                        saveCookies(xhr);
 
                         final int statusCode = xhr.getResponseCode();
                         if (HttpURLConnection.HTTP_OK == statusCode) {
@@ -217,6 +233,8 @@ public class PollingXHR extends Polling {
                         } else {
                             self.onError(new IOException(Integer.toString(statusCode)));
                         }
+                    } catch (URISyntaxException e){
+                        self.onError(e);
                     } catch (IOException e) {
                         self.onError(e);
                     } catch (NullPointerException e) {
@@ -308,6 +326,29 @@ public class PollingXHR extends Polling {
                     if (reader != null) reader.close();
                 } catch (IOException e) {}
                 this.cleanup();
+            }
+        }
+
+        private void setCookies(HttpURLConnection xhr) throws URISyntaxException {
+            if(cookies != null) {
+                URL url = xhr.getURL();
+                List<HttpCookie> cook = cookies.getCookieStore().get(url.toURI());
+                if(cook.size() > 0) {
+                    StringBuffer cookieBuf = new StringBuffer();
+                    for(HttpCookie cookie : cook) {
+                        cookieBuf.append(cookie.toString()+"; ");
+                    }
+                    cookieBuf.setLength(cookieBuf.length() - 2);
+                    //logger.info("Cookie "+cookieBuf);
+                    xhr.setRequestProperty("Cookie", cookieBuf.toString());
+                }
+            }
+        }
+
+        private void saveCookies(HttpURLConnection xhr) throws URISyntaxException, IOException {
+            if(cookies != null) {
+                URL url = xhr.getURL();
+                cookies.put(url.toURI(), xhr.getHeaderFields());
             }
         }
 
