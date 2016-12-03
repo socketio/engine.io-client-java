@@ -9,9 +9,7 @@ import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
 import okhttp3.*;
-import okhttp3.ws.WebSocketCall;
-import okhttp3.ws.WebSocketListener;
-import okio.Buffer;
+import okio.ByteString;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -22,8 +20,6 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import static okhttp3.ws.WebSocket.BINARY;
-import static okhttp3.ws.WebSocket.TEXT;
 
 public class WebSocket extends Transport {
 
@@ -31,8 +27,7 @@ public class WebSocket extends Transport {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
 
-    private okhttp3.ws.WebSocket ws;
-    private WebSocketCall wsCall;
+    private okhttp3.WebSocket ws;
 
     public WebSocket(Options opts) {
         super(opts);
@@ -80,11 +75,9 @@ public class WebSocket extends Transport {
         }
         final Request request = builder.build();
         final OkHttpClient client = clientBuilder.build();
-        wsCall = WebSocketCall.create(client, request);
-        wsCall.enqueue(new WebSocketListener() {
+        ws = client.newWebSocket(request, new WebSocketListener() {
             @Override
-            public void onOpen(okhttp3.ws.WebSocket webSocket, Response response) {
-                ws = webSocket;
+            public void onOpen(okhttp3.WebSocket webSocket, Response response) {
                 final Map<String, List<String>> headers = response.headers().toMultimap();
                 EventThread.exec(new Runnable() {
                     @Override
@@ -96,44 +89,33 @@ public class WebSocket extends Transport {
             }
 
             @Override
-            public void onMessage(final ResponseBody responseBody) throws IOException {
-                Object data = null;
-                if (responseBody.contentType() == TEXT) {
-                    data = responseBody.string();
-                } else if (responseBody.contentType() == BINARY) {
-                    data = responseBody.source().readByteArray();
-                } else {
-                    EventThread.exec(new Runnable() {
-                        @Override
-                        public void run() {
-                            self.onError("Unknown payload type: " + responseBody.contentType(), new IllegalStateException());
-                        }
-                    });
+            public void onMessage(okhttp3.WebSocket webSocket, final String text) {
+                if (text == null) {
+                    return;
                 }
-                responseBody.source().close();
-                final Object finalData = data;
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        if (finalData == null) {
-                            return;
-                        }
-                        if (finalData instanceof String) {
-                            self.onData((String) finalData);
-                        } else {
-                            self.onData((byte[]) finalData);
-                        }
+                    self.onData(text);
                     }
                 });
-
             }
 
             @Override
-            public void onPong(Buffer payload) {
+            public void onMessage(okhttp3.WebSocket webSocket, final ByteString bytes) {
+                if (bytes == null) {
+                    return;
+                }
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        self.onData(bytes.toByteArray());
+                    }
+                });
             }
 
             @Override
-            public void onClose(int code, String reason) {
+            public void onClosed(okhttp3.WebSocket webSocket, int code, String reason) {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
@@ -143,11 +125,14 @@ public class WebSocket extends Transport {
             }
 
             @Override
-            public void onFailure(final IOException e, final Response response) {
+            public void onFailure(okhttp3.WebSocket webSocket, final Throwable t, Response response) {
+                if (!(t instanceof Exception)) {
+                    return;
+                }
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        self.onError("websocket error", e);
+                        self.onError("websocket error", (Exception) t);
                     }
                 });
             }
@@ -186,15 +171,12 @@ public class WebSocket extends Transport {
                 public void call(Object packet) {
                     try {
                         if (packet instanceof String) {
-                            self.ws.sendMessage(RequestBody.create(TEXT, (String) packet));
+                            self.ws.send((String) packet);
                         } else if (packet instanceof byte[]) {
-                            self.ws.sendMessage(RequestBody.create(BINARY, (byte[]) packet));
+                            self.ws.send(ByteString.of((byte[]) packet));
                         }
                     } catch (IllegalStateException e) {
                         logger.fine("websocket closed before we could write");
-                    } catch (IOException e) {
-                        logger.fine("websocket closed before onclose event");
-                        doClose();
                     }
 
                     if (0 == --total[0]) done.run();
@@ -203,23 +185,16 @@ public class WebSocket extends Transport {
         }
     }
 
-    @Override
-    protected void onClose() {
-        super.onClose();
-    }
-
     protected void doClose() {
         if (ws != null) {
             try {
                 ws.close(1000, "");
-            } catch (IOException e) {
-                // websocket already closed
             } catch (IllegalStateException e) {
                 // websocket already closed
             }
         }
-        if (wsCall != null) {
-            wsCall.cancel();
+        if (ws != null) {
+            ws.cancel();
         }
     }
 
