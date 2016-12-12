@@ -162,5 +162,6 @@ public abstract class Transport extends Emitter {
         public Proxy proxy;
         public String proxyLogin;
         public String proxyPassword;
+        public boolean keepCookies;
     }
 }

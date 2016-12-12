@@ -127,6 +127,7 @@ public class Socket extends Emitter {
     public Proxy proxy;
     public String proxyLogin;
     public String proxyPassword;
+    public boolean keepCookies;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -207,6 +208,7 @@ public class Socket extends Emitter {
         this.proxy = opts.proxy;
         this.proxyLogin = opts.proxyLogin;
         this.proxyPassword = opts.proxyPassword;
+        this.keepCookies = opts.keepCookies;
     }
 
     public static void setDefaultSSLContext(SSLContext sslContext) {
@@ -276,6 +278,7 @@ public class Socket extends Emitter {
         opts.proxy = this.proxy;
         opts.proxyLogin = this.proxyLogin;
         opts.proxyPassword = this.proxyPassword;
+        opts.keepCookies = this.keepCookies;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {
