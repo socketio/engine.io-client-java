@@ -13,7 +13,9 @@ public class ParseQS {
     public static String encode(Map<String, String> obj) {
         StringBuilder str = new StringBuilder();
         for (Map.Entry<String, String> entry : obj.entrySet()) {
-            if (str.length() > 0) str.append("&");
+            if (str.length() > 0) {
+                str.append("&");
+            }
             str.append(Global.encodeURIComponent(entry.getKey())).append("=")
                     .append(Global.encodeURIComponent(entry.getValue()));
         }
