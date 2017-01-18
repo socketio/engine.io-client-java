@@ -13,6 +13,9 @@ import okio.ByteString;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +46,18 @@ public class WebSocket extends Transport {
                 // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
                 .connectTimeout(0, TimeUnit.MILLISECONDS)
                 .readTimeout(0, TimeUnit.MILLISECONDS)
-                .writeTimeout(0, TimeUnit.MILLISECONDS);
+                .writeTimeout(0, TimeUnit.MILLISECONDS)
+                .dns(new Dns() {
+                    @Override
+                    public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+                        if (hostname == null) throw new UnknownHostException("hostname == null");
+                        try {
+                            return Arrays.asList(InetAddress.getAllByName(hostname));
+                        } catch (Exception e) {
+                            throw new UnknownHostException(e.getMessage());
+                        }
+                    }
+                });
 
         if (this.sslContext != null) {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
