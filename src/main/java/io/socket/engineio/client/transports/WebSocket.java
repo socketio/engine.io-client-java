@@ -39,11 +39,23 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
-                .connectTimeout(0, TimeUnit.MILLISECONDS)
-                .readTimeout(0, TimeUnit.MILLISECONDS)
-                .writeTimeout(0, TimeUnit.MILLISECONDS);
+        OkHttpClient.Builder clientBuilder;
+        if (this.storeOkHttpClient != null) {
+            if (this.storeOkHttpClient.OkHttpClientBuilder == null) {
+                this.storeOkHttpClient.OkHttpClientBuilder = new OkHttpClient.Builder()
+                        // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
+                        .connectTimeout(0, TimeUnit.MILLISECONDS)
+                        .readTimeout(0, TimeUnit.MILLISECONDS)
+                        .writeTimeout(0, TimeUnit.MILLISECONDS);
+            }
+            clientBuilder = this.storeOkHttpClient.OkHttpClientBuilder;
+        } else {
+            clientBuilder = new OkHttpClient.Builder()
+                    // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
+                    .connectTimeout(0, TimeUnit.MILLISECONDS)
+                    .readTimeout(0, TimeUnit.MILLISECONDS)
+                    .writeTimeout(0, TimeUnit.MILLISECONDS);
+        }
 
         if (this.sslContext != null) {
             SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -137,7 +149,7 @@ public class WebSocket extends Transport {
                 });
             }
         });
-        client.dispatcher().executorService().shutdown();
+        //client.dispatcher().executorService().shutdown();
     }
 
     protected void write(Packet[] packets) throws UTF8Exception {

@@ -11,6 +11,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
 import java.util.Map;
+import okhttp3.OkHttpClient;
 
 public abstract class Transport extends Emitter {
 
@@ -47,6 +48,7 @@ public abstract class Transport extends Emitter {
     protected Proxy proxy;
     protected String proxyLogin;
     protected String proxyPassword;
+    protected storeOkHttpClient storeOkHttpClient;
 
     protected ReadyState readyState;
 
@@ -64,6 +66,7 @@ public abstract class Transport extends Emitter {
         this.proxy = opts.proxy;
         this.proxyLogin = opts.proxyLogin;
         this.proxyPassword = opts.proxyPassword;
+        this.storeOkHttpClient = opts.storeOkHttpClient;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -148,6 +151,7 @@ public abstract class Transport extends Emitter {
 
     public static class Options {
 
+        public storeOkHttpClient storeOkHttpClient = null;
         public String hostname;
         public String path;
         public String timestampParam;
@@ -162,5 +166,11 @@ public abstract class Transport extends Emitter {
         public Proxy proxy;
         public String proxyLogin;
         public String proxyPassword;
+    }
+
+    public static class storeOkHttpClient {
+
+        public OkHttpClient.Builder OkHttpClientBuilder = null;
+
     }
 }
