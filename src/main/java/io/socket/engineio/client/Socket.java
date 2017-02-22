@@ -850,7 +850,6 @@ public class Socket extends Emitter {
     public static class Options extends Transport.Options {
 
         public boolean shareOkHttpClient = false;
-        public Transport.storeOkHttpClient storeOkHttpClient = null;
 
         /**
          * List of transport names.
