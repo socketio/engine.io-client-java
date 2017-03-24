@@ -171,6 +171,5 @@ public abstract class Transport extends Emitter {
     public static class storeOkHttpClient {
 
         public OkHttpClient.Builder OkHttpClientBuilder = null;
-
     }
 }
