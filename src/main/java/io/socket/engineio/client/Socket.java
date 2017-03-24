@@ -101,6 +101,7 @@ public class Socket extends Emitter {
     private static SSLContext defaultSSLContext;
     private static HostnameVerifier defaultHostnameVerifier;
 
+    private Transport.storeOkHttpClient storeOkHttpClient = null;
     private boolean secure;
     private boolean upgrade;
     private boolean timestampRequests;
@@ -190,6 +191,10 @@ public class Socket extends Emitter {
             opts.port = this.secure ? 443 : 80;
         }
 
+        if (opts.shareOkHttpClient && opts.storeOkHttpClient == null) {
+            opts.storeOkHttpClient = new Transport.storeOkHttpClient();
+        }
+        this.storeOkHttpClient = opts.storeOkHttpClient;
         this.sslContext = opts.sslContext != null ? opts.sslContext : defaultSSLContext;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port;
@@ -262,6 +267,7 @@ public class Socket extends Emitter {
         }
 
         Transport.Options opts = new Transport.Options();
+        opts.storeOkHttpClient = this.storeOkHttpClient;
         opts.sslContext = this.sslContext;
         opts.hostname = this.hostname;
         opts.port = this.port;
@@ -842,6 +848,8 @@ public class Socket extends Emitter {
     }
 
     public static class Options extends Transport.Options {
+
+        public boolean shareOkHttpClient = false;
 
         /**
          * List of transport names.
