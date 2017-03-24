@@ -149,7 +149,9 @@ public class WebSocket extends Transport {
                 });
             }
         });
-        //client.dispatcher().executorService().shutdown();
+        if (this.storeOkHttpClient == null || this.storeOkHttpClient.OkHttpClientBuilder == null) {
+            client.dispatcher().executorService().shutdown();
+        }
     }
 
     protected void write(Packet[] packets) throws UTF8Exception {
