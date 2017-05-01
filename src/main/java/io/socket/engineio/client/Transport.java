@@ -1,16 +1,15 @@
 package io.socket.engineio.client;
 
 
+import java.util.Map;
+
 import io.socket.emitter.Emitter;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import java.net.Proxy;
-import java.util.Map;
+import okhttp3.Call;
+import okhttp3.WebSocket;
 
 public abstract class Transport extends Emitter {
 
@@ -41,14 +40,10 @@ public abstract class Transport extends Emitter {
     protected String path;
     protected String hostname;
     protected String timestampParam;
-    protected SSLContext sslContext;
     protected Socket socket;
-    protected HostnameVerifier hostnameVerifier;
-    protected Proxy proxy;
-    protected String proxyLogin;
-    protected String proxyPassword;
-
     protected ReadyState readyState;
+    protected WebSocket.Factory webSocketFactory;
+    protected Call.Factory callFactory;
 
     public Transport(Options opts) {
         this.path = opts.path;
@@ -58,12 +53,9 @@ public abstract class Transport extends Emitter {
         this.query = opts.query;
         this.timestampParam = opts.timestampParam;
         this.timestampRequests = opts.timestampRequests;
-        this.sslContext = opts.sslContext;
         this.socket = opts.socket;
-        this.hostnameVerifier = opts.hostnameVerifier;
-        this.proxy = opts.proxy;
-        this.proxyLogin = opts.proxyLogin;
-        this.proxyPassword = opts.proxyPassword;
+        this.webSocketFactory = opts.webSocketFactory;
+        this.callFactory = opts.callFactory;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -156,11 +148,8 @@ public abstract class Transport extends Emitter {
         public int port = -1;
         public int policyPort = -1;
         public Map<String, String> query;
-        public SSLContext sslContext;
-        public HostnameVerifier hostnameVerifier;
         protected Socket socket;
-        public Proxy proxy;
-        public String proxyLogin;
-        public String proxyPassword;
+        public WebSocket.Factory webSocketFactory;
+        public Call.Factory callFactory;
     }
 }

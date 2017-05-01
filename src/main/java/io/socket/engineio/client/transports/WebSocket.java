@@ -1,6 +1,12 @@
 package io.socket.engineio.client.transports;
 
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
+
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
@@ -8,17 +14,11 @@ import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
-import okhttp3.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocketListener;
 import okio.ByteString;
-
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 
 public class WebSocket extends Transport {
@@ -39,34 +39,7 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
-                // turn off timeouts (github.com/socketio/engine.io-client-java/issues/32)
-                .connectTimeout(0, TimeUnit.MILLISECONDS)
-                .readTimeout(0, TimeUnit.MILLISECONDS)
-                .writeTimeout(0, TimeUnit.MILLISECONDS);
-
-        if (this.sslContext != null) {
-            SSLSocketFactory factory = sslContext.getSocketFactory();// (SSLSocketFactory) SSLSocketFactory.getDefault();
-            clientBuilder.sslSocketFactory(factory);
-        }
-        if (this.hostnameVerifier != null) {
-            clientBuilder.hostnameVerifier(this.hostnameVerifier);
-        }
-        if (proxy != null) {
-            clientBuilder.proxy(proxy);
-        }
-        if (proxyLogin != null && !proxyLogin.isEmpty()) {
-            final String credentials = Credentials.basic(proxyLogin, proxyPassword);
-
-            clientBuilder.proxyAuthenticator(new Authenticator() {
-                @Override
-                public Request authenticate(Route route, Response response) throws IOException {
-                    return response.request().newBuilder()
-                            .header("Proxy-Authorization", credentials)
-                            .build();
-                }
-            });
-        }
+        okhttp3.WebSocket.Factory factory = webSocketFactory != null ? webSocketFactory : new OkHttpClient();
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
             for (String v : entry.getValue()) {
@@ -74,8 +47,7 @@ public class WebSocket extends Transport {
             }
         }
         final Request request = builder.build();
-        final OkHttpClient client = clientBuilder.build();
-        ws = client.newWebSocket(request, new WebSocketListener() {
+        ws = factory.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(okhttp3.WebSocket webSocket, Response response) {
                 final Map<String, List<String>> headers = response.headers().toMultimap();
@@ -137,7 +109,6 @@ public class WebSocket extends Transport {
                 });
             }
         });
-        client.dispatcher().executorService().shutdown();
     }
 
     protected void write(Packet[] packets) throws UTF8Exception {
@@ -187,14 +158,8 @@ public class WebSocket extends Transport {
 
     protected void doClose() {
         if (ws != null) {
-            try {
-                ws.close(1000, "");
-            } catch (IllegalStateException e) {
-                // websocket already closed
-            }
-        }
-        if (ws != null) {
-            ws.cancel();
+            ws.close(1000, "");
+            ws = null;
         }
     }
 

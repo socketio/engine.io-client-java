@@ -1,20 +1,25 @@
 package io.socket.engineio.client.transports;
 
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
+
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.Transport;
 import io.socket.thread.EventThread;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.Proxy;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.logging.Logger;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class PollingXHR extends Polling {
 
@@ -33,9 +38,7 @@ public class PollingXHR extends Polling {
             opts = new Request.Options();
         }
         opts.uri = this.uri();
-        opts.sslContext = this.sslContext;
-        opts.hostnameVerifier = this.hostnameVerifier;
-        opts.proxy = this.proxy;
+        opts.callFactory = this.callFactory;
 
         Request req = new Request(opts);
 
@@ -136,6 +139,7 @@ public class PollingXHR extends Polling {
         public static final String EVENT_ERROR = "error";
         public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
         public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
+        private static final String BINARY_CONTENT_TYPE = "application/octet-stream";
 
         private String method;
         private String uri;
@@ -143,93 +147,60 @@ public class PollingXHR extends Polling {
         // data is always a binary
         private byte[] data;
 
-        private SSLContext sslContext;
-        private HttpURLConnection xhr;
-        private HostnameVerifier hostnameVerifier;
-        private Proxy proxy;
+        private Call.Factory callFactory;
+        private Response response;
+        private Call requestCall;
 
         public Request(Options opts) {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
-            this.sslContext = opts.sslContext;
-            this.hostnameVerifier = opts.hostnameVerifier;
-            this.proxy = opts.proxy;
+            this.callFactory = opts.callFactory != null ? opts.callFactory : new OkHttpClient();
         }
 
         public void create() {
             final Request self = this;
-            try {
-                logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
-                URL url = new URL(this.uri);
-                xhr = proxy != null ? (HttpURLConnection) url.openConnection(proxy)
-                        : (HttpURLConnection) url.openConnection();
-                xhr.setRequestMethod(this.method);
-            } catch (IOException e) {
-                this.onError(e);
-                return;
-            }
-
-            xhr.setConnectTimeout(10000);
-
-            if (xhr instanceof HttpsURLConnection) {
-                if (this.sslContext != null) {
-                    ((HttpsURLConnection)xhr).setSSLSocketFactory(this.sslContext.getSocketFactory());
-                }
-                if (this.hostnameVerifier != null) {
-                    ((HttpsURLConnection)xhr).setHostnameVerifier(this.hostnameVerifier);
-                }
-            }
-
+            logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
             Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
 
             if ("POST".equals(this.method)) {
-                xhr.setDoOutput(true);
-                headers.put("Content-type", new LinkedList<String>(Arrays.asList("application/octet-stream")));
+                headers.put("Content-type", new LinkedList<String>(Collections.singletonList(BINARY_CONTENT_TYPE)));
             }
 
             self.onRequestHeaders(headers);
+
+            logger.fine(String.format("sending xhr with url %s | data %s", this.uri, Arrays.toString(this.data)));
+            okhttp3.Request.Builder requestBuilder = new okhttp3.Request.Builder();
             for (Map.Entry<String, List<String>> header : headers.entrySet()) {
                 for (String v : header.getValue()){
-                    xhr.addRequestProperty(header.getKey(), v);
+                    requestBuilder.addHeader(header.getKey(), v);
                 }
             }
+            okhttp3.Request request = requestBuilder
+                    .url(HttpUrl.parse(self.uri))
+                    .method(self.method, (self.data != null) ?
+                            RequestBody.create(MediaType.parse(BINARY_CONTENT_TYPE), self.data) : null)
+                    .build();
 
-            logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
-            new Thread(new Runnable() {
+            requestCall = callFactory.newCall(request);
+            requestCall.enqueue(new Callback() {
                 @Override
-                public void run() {
-                    OutputStream output = null;
-                    try {
-                        if (self.data != null) {
-                            xhr.setFixedLengthStreamingMode(self.data.length);
-                            output = new BufferedOutputStream(xhr.getOutputStream());
-                            output.write(self.data);
-                            output.flush();
-                        }
+                public void onFailure(Call call, IOException e) {
+                    self.onError(e);
+                }
 
-                        Map<String, List<String>> headers = xhr.getHeaderFields();
-                        self.onResponseHeaders(headers);
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    self.response = response;
+                    self.onResponseHeaders(response.headers().toMultimap());
 
-                        final int statusCode = xhr.getResponseCode();
-                        if (HttpURLConnection.HTTP_OK == statusCode) {
-                            self.onLoad();
-                        } else {
-                            self.onError(new IOException(Integer.toString(statusCode)));
-                        }
-                    } catch (IOException e) {
-                        self.onError(e);
-                    } catch (NullPointerException e) {
-                        // It would occur to disconnect
-                        // https://code.google.com/p/android/issues/detail?id=76592
-                        self.onError(e);
-                    } finally {
-                        try {
-                            if (output != null) output.close();
-                        } catch (IOException e) {}
+                    if (response.isSuccessful()) {
+                        self.onLoad();
+                    } else {
+                        self.onError(new IOException(Integer.toString(response.code())));
                     }
                 }
-            }).start();
+            });
         }
 
         private void onSuccess() {
@@ -258,56 +229,17 @@ public class PollingXHR extends Polling {
             this.emit(EVENT_RESPONSE_HEADERS, headers);
         }
 
-        private void cleanup() {
-            if (xhr == null) {
-                return;
-            }
-
-            xhr.disconnect();
-            xhr = null;
-        }
-
         private void onLoad() {
-            InputStream input = null;
-            BufferedReader reader = null;
-            String contentType = xhr.getContentType();
+            String contentType = response.body().contentType().toString();
+
             try {
-                if ("application/octet-stream".equalsIgnoreCase(contentType)) {
-                    input = new BufferedInputStream(this.xhr.getInputStream());
-                    List<byte[]> buffers = new ArrayList<byte[]>();
-                    int capacity = 0;
-                    int len = 0;
-                    byte[] buffer = new byte[1024];
-                    while ((len = input.read(buffer)) > 0) {
-                        byte[] tempBuffer = new byte[len];
-                        System.arraycopy(buffer, 0, tempBuffer, 0, len);
-                        buffers.add(tempBuffer);
-                        capacity += len;
-                    }
-                    ByteBuffer data = ByteBuffer.allocate(capacity);
-                    for (byte[] b : buffers) {
-                        data.put(b);
-                    }
-                    this.onData(data.array());
+                if (BINARY_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+                    this.onData(response.body().bytes());
                 } else {
-                    String line;
-                    StringBuilder data = new StringBuilder();
-                    reader = new BufferedReader(new InputStreamReader(xhr.getInputStream()));
-                    while ((line = reader.readLine()) != null) {
-                        data.append(line);
-                    }
-                    this.onData(data.toString());
+                    this.onData(response.body().string());
                 }
             } catch (IOException e) {
                 this.onError(e);
-            } finally {
-                try {
-                    if (input != null) input.close();
-                } catch (IOException e) {}
-                try {
-                    if (reader != null) reader.close();
-                } catch (IOException e) {}
-                this.cleanup();
             }
         }
 
@@ -316,9 +248,7 @@ public class PollingXHR extends Polling {
             public String uri;
             public String method;
             public byte[] data;
-            public SSLContext sslContext;
-            public HostnameVerifier hostnameVerifier;
-            public Proxy proxy;
+            public Call.Factory callFactory;
         }
     }
 }

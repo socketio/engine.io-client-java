@@ -1,5 +1,21 @@
 package io.socket.engineio.client;
 
+import org.json.JSONException;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.transports.Polling;
 import io.socket.engineio.client.transports.PollingXHR;
@@ -8,19 +24,7 @@ import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
-import org.json.JSONException;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import java.net.Proxy;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import okhttp3.OkHttpClient;
 
 
 /**
@@ -98,8 +102,9 @@ public class Socket extends Emitter {
 
     private static boolean priorWebsocketSuccess = false;
 
-    private static SSLContext defaultSSLContext;
-    private static HostnameVerifier defaultHostnameVerifier;
+    private static okhttp3.WebSocket.Factory defaultWebSocketFactory;
+    private static okhttp3.Call.Factory defaultCallFactory;
+    private static OkHttpClient defaultOkHttpClient;
 
     private boolean secure;
     private boolean upgrade;
@@ -122,11 +127,8 @@ public class Socket extends Emitter {
     /*package*/ Transport transport;
     private Future pingTimeoutTimer;
     private Future pingIntervalTimer;
-    private SSLContext sslContext;
-    private HostnameVerifier hostnameVerifier;
-    public Proxy proxy;
-    public String proxyLogin;
-    public String proxyPassword;
+    private okhttp3.WebSocket.Factory webSocketFactory;
+    private okhttp3.Call.Factory callFactory;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -190,7 +192,6 @@ public class Socket extends Emitter {
             opts.port = this.secure ? 443 : 80;
         }
 
-        this.sslContext = opts.sslContext != null ? opts.sslContext : defaultSSLContext;
         this.hostname = opts.hostname != null ? opts.hostname : "localhost";
         this.port = opts.port;
         this.query = opts.query != null ?
@@ -203,18 +204,28 @@ public class Socket extends Emitter {
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
-        this.hostnameVerifier = opts.hostnameVerifier != null ? opts.hostnameVerifier : defaultHostnameVerifier;
-        this.proxy = opts.proxy;
-        this.proxyLogin = opts.proxyLogin;
-        this.proxyPassword = opts.proxyPassword;
+        this.callFactory = opts.callFactory != null ? opts.callFactory : defaultCallFactory;
+        this.webSocketFactory = opts.webSocketFactory != null ? opts.webSocketFactory : defaultWebSocketFactory;
+        if (callFactory == null) {
+            if (defaultOkHttpClient == null) {
+                defaultOkHttpClient = new OkHttpClient();
+            }
+            callFactory = defaultOkHttpClient;
+        }
+        if (webSocketFactory == null) {
+            if (defaultOkHttpClient == null) {
+                defaultOkHttpClient = new OkHttpClient();
+            }
+            webSocketFactory = defaultOkHttpClient;
+        }
     }
 
-    public static void setDefaultSSLContext(SSLContext sslContext) {
-        defaultSSLContext = sslContext;
+    public static void setDefaultOkHttpWebSocketFactory(okhttp3.WebSocket.Factory factory) {
+        defaultWebSocketFactory = factory;
     }
 
-    public static void setDefaultHostnameVerifier(HostnameVerifier hostnameVerifier) {
-        defaultHostnameVerifier = hostnameVerifier;
+    public static void setDefaultOkHttpCallFactory(okhttp3.Call.Factory factory) {
+        defaultCallFactory = factory;
     }
 
     /**
@@ -262,7 +273,6 @@ public class Socket extends Emitter {
         }
 
         Transport.Options opts = new Transport.Options();
-        opts.sslContext = this.sslContext;
         opts.hostname = this.hostname;
         opts.port = this.port;
         opts.secure = this.secure;
@@ -272,10 +282,8 @@ public class Socket extends Emitter {
         opts.timestampParam = this.timestampParam;
         opts.policyPort = this.policyPort;
         opts.socket = this;
-        opts.hostnameVerifier = this.hostnameVerifier;
-        opts.proxy = this.proxy;
-        opts.proxyLogin = this.proxyLogin;
-        opts.proxyPassword = this.proxyPassword;
+        opts.callFactory = this.callFactory;
+        opts.webSocketFactory = this.webSocketFactory;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {
