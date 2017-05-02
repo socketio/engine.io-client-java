@@ -94,14 +94,19 @@ socket.on(Socket.EVENT_OPEN, new Emitter.Listener() {
 Use custom SSL settings:
 
 ```java
+OkHttpClient okHttpClient = new OkHttpClient.Builder()
+    .hostnameVerifier(myHostnameVerifier)
+    .sslSocketFactory(mySSLContext.getSocketFactory(), myX509TrustManager)
+    .build();
+
 // default SSLContext for all sockets
-Socket.setDefaultSSLContext(mySSLContext);
-Socket.setDefaultHostnameVerifier(myHostnameVerifier);
+Socket.setDefaultOkHttpWebSocketFactory(okHttpClient);
+Socket.setDefaultOkHttpCallFactory(okHttpClient);
 
 // set as an option
 opts = new Socket.Options();
-opts.sslContext = mySSLContext;
-opts.hostnameVerifier = myHostnameVerifier;
+opts.callFactory = okHttpClient;
+opts.webSocketFactory = okHttpClient;
 socket = new Socket(opts);
 ```
 

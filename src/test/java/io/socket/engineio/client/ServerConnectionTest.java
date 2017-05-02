@@ -163,8 +163,8 @@ public class ServerConnectionTest extends Connection {
         });
         socket.open();
 
-        assertThat(messages.take(), is("foo"));
         assertThat(messages.take(), is("hi"));
+        assertThat(messages.take(), is("foo"));
         socket.close();
     }
 
