@@ -496,7 +496,9 @@ public class Socket extends Emitter {
     }
 
     private void onPacket(Packet packet) {
-        if (this.readyState == ReadyState.OPENING || this.readyState == ReadyState.OPEN) {
+        if (this.readyState == ReadyState.OPENING ||
+                this.readyState == ReadyState.OPEN ||
+                this.readyState == ReadyState.CLOSING) {
             logger.fine(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
 
             this.emit(EVENT_PACKET, packet);

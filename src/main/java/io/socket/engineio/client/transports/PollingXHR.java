@@ -167,6 +167,8 @@ public class PollingXHR extends Polling {
                 headers.put("Content-type", new LinkedList<String>(Collections.singletonList(BINARY_CONTENT_TYPE)));
             }
 
+            headers.put("Accept", new LinkedList<String>(Collections.singletonList("*/*")));
+
             self.onRequestHeaders(headers);
 
             logger.fine(String.format("sending xhr with url %s | data %s", this.uri, Arrays.toString(this.data)));

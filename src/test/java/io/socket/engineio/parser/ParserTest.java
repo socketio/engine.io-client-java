@@ -157,6 +157,13 @@ public class ParserTest {
     }
 
     @Test
+    public void decodeEmptyPayload() {
+        Packet<String> p = decodePacket((String)null);
+        assertThat(p.type, is(Packet.ERROR));
+        assertThat(p.data, is(ERROR_DATA));
+    }
+
+    @Test
     public void decodeBadFormat() {
         Packet<String> p = decodePacket(":::");
         assertThat(p.type, is(Packet.ERROR));
