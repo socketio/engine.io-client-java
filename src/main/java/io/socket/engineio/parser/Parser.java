@@ -76,6 +76,10 @@ public class Parser {
     }
 
     public static Packet<String> decodePacket(String data, boolean utf8decode) {
+        if (data == null) {
+            return err;
+        }
+
         int type;
         try {
             type = Character.getNumericValue(data.charAt(0));
