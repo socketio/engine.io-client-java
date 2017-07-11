@@ -237,13 +237,14 @@ public class PollingXHR extends Polling {
         }
 
         private void onLoad() {
-            String contentType = response.body().contentType().toString();
+            ResponseBody body = response.body();
+            String contentType = body.contentType().toString();
 
             try {
                 if (BINARY_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
-                    this.onData(response.body().bytes());
+                    this.onData(body.bytes());
                 } else {
-                    this.onData(response.body().string());
+                    this.onData(body.string());
                 }
             } catch (IOException e) {
                 this.onError(e);
