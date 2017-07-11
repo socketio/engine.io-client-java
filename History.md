@@ -1,4 +1,13 @@
 
+0.9.0 / 2017-07-11
+==================
+
+* compatible with engine.io 1.8.4
+* add options for injecting OKHttpClient [@b95505017]
+* emit data on `closing` state on onPacket as well
+* set default accept header
+* update okhttp
+
 0.8.3 / 2016-12-12
 ==================
 
