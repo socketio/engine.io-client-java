@@ -20,6 +20,7 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class PollingXHR extends Polling {
 
@@ -196,10 +197,14 @@ public class PollingXHR extends Polling {
                     self.response = response;
                     self.onResponseHeaders(response.headers().toMultimap());
 
-                    if (response.isSuccessful()) {
-                        self.onLoad();
-                    } else {
-                        self.onError(new IOException(Integer.toString(response.code())));
+                    try {
+                        if (response.isSuccessful()) {
+                            self.onLoad();
+                        } else {
+                            self.onError(new IOException(Integer.toString(response.code())));
+                        }
+                    } finally {
+                        response.close();
                     }
                 }
             });
