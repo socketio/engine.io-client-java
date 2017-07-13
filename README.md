@@ -114,7 +114,9 @@ socket = new Socket(opts);
 This library supports all of the features the JS client does, including events, options and upgrading transport. Android is fully supported.
 
 ### Extra features only for Java client
-Some features are added for simulating browser behavior like handling cookies.
+
+#### Accessing HTTP Headers
+You can access HTTP headers like the following.
 
 ```java
 socket.on(Socket.EVENT_TRANSPORT, new Emitter.listener() {
