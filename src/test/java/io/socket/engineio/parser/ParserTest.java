@@ -157,6 +157,19 @@ public class ParserTest {
     }
 
     @Test
+    public void encodingStringMessageWithLoneSurrogatesReplacedByUFFFD() throws UTF8Exception  {
+        String data = "\uDC00\uD834\uDF06\uDC00 \uD800\uD835\uDF07\uD800";
+        encodePacket(new Packet<String>(Packet.MESSAGE, data), true, new EncodeCallback<String>() {
+            @Override
+            public void call(String encoded) {
+                Packet<String> p = decodePacket(encoded, true);
+                assertThat(p.type, is(Packet.MESSAGE));
+                assertThat(p.data, is("\uFFFD\uD834\uDF06\uFFFD \uFFFD\uD835\uDF07\uFFFD"));
+            }
+        });
+    }
+
+    @Test
     public void decodeEmptyPayload() {
         Packet<String> p = decodePacket((String)null);
         assertThat(p.type, is(Packet.ERROR));
@@ -186,20 +199,20 @@ public class ParserTest {
 
     @Test
     public void encodePayloads() throws UTF8Exception  {
-        encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[]{new Packet(Packet.PING), new Packet(Packet.PONG)}, new EncodeCallback<String>() {
             @Override
-            public void call(byte[] data) {
-                assertThat(data, isA(byte[].class));
+            public void call(String data) {
+                assertThat(data, isA(String.class));
             }
         });
     }
 
     @Test
     public void encodeAndDecodePayloads() throws UTF8Exception  {
-        encodePayload(new Packet[] {new Packet<String>(Packet.MESSAGE, "a")}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[] {new Packet<String>(Packet.MESSAGE, "a")}, new EncodeCallback<String>() {
             @Override
-            public void call(byte[] data) {
-                decodePayload(data, new DecodePayloadCallback() {
+            public void call(String data) {
+                decodePayload(data, new DecodePayloadCallback<String>() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
                         boolean isLast = index + 1 == total;
@@ -209,10 +222,10 @@ public class ParserTest {
                 });
             }
         });
-        encodePayload(new Packet[]{new Packet<String>(Packet.MESSAGE, "a"), new Packet(Packet.PING)}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[]{new Packet<String>(Packet.MESSAGE, "a"), new Packet(Packet.PING)}, new EncodeCallback<String>() {
             @Override
-            public void call(byte[] data) {
-                decodePayload(data, new DecodePayloadCallback() {
+            public void call(String data) {
+                decodePayload(data, new DecodePayloadCallback<String>() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
                         boolean isLast = index + 1 == total;
@@ -230,10 +243,10 @@ public class ParserTest {
 
     @Test
     public void encodeAndDecodeEmptyPayloads() throws UTF8Exception  {
-        encodePayload(new Packet[] {}, new EncodeCallback<byte[]>() {
+        encodePayload(new Packet[] {}, new EncodeCallback<String>() {
             @Override
-            public void call(byte[] data) {
-                decodePayload(data, new DecodePayloadCallback() {
+            public void call(String data) {
+                decodePayload(data, new DecodePayloadCallback<String>() {
                     @Override
                     public boolean call(Packet packet, int index, int total) {
                         assertThat(packet.type, is(Packet.OPEN));
@@ -242,6 +255,19 @@ public class ParserTest {
                         return true;
                     }
                 });
+            }
+        });
+    }
+
+    @Test
+    public void notUTF8EncodeWhenDealingWithStringsOnly() throws UTF8Exception  {
+        encodePayload(new Packet[] {
+                new Packet(Packet.MESSAGE, "€€€"),
+                new Packet(Packet.MESSAGE, "α")
+        }, new EncodeCallback<String>() {
+            @Override
+            public void call(String data) {
+                assertThat(data, is("4:4€€€2:4α"));
             }
         });
     }
@@ -317,20 +343,6 @@ public class ParserTest {
             }
         });
         decodePayload("1:a2:b", new DecodePayloadCallback<String>() {
-            @Override
-            public boolean call(Packet<String> packet, int index, int total) {
-                boolean isLast = index + 1 == total;
-                assertThat(packet.type, is(Packet.ERROR));
-                assertThat(packet.data, is(ERROR_DATA));
-                assertThat(isLast, is(true));
-                return true;
-            }
-        });
-    }
-
-    @Test
-    public void decodePayloadInvalidUTF8() {
-        decodePayload("2:4\uffff", new DecodePayloadCallback<String>() {
             @Override
             public boolean call(Packet<String> packet, int index, int total) {
                 boolean isLast = index + 1 == total;

@@ -35,6 +35,11 @@ public class Parser {
 
     private static Packet<String> err = new Packet<String>(Packet.ERROR, "parser error");
 
+    private static UTF8.Options utf8Options = new UTF8.Options();
+    static  {
+        utf8Options.strict = false;
+    }
+
 
     private Parser() {}
 
@@ -55,7 +60,7 @@ public class Parser {
         String encoded = String.valueOf(packets.get(packet.type));
 
         if (null != packet.data) {
-            encoded += utf8encode ? UTF8.encode(String.valueOf(packet.data)) : String.valueOf(packet.data);
+            encoded += utf8encode ? UTF8.encode(String.valueOf(packet.data), utf8Options) : String.valueOf(packet.data);
         }
 
         @SuppressWarnings("unchecked")
@@ -89,7 +94,7 @@ public class Parser {
 
         if (utf8decode) {
             try {
-                data = UTF8.decode(data);
+                data = UTF8.decode(data, utf8Options);
             } catch (UTF8Exception e) {
                 return err;
             }
@@ -113,7 +118,40 @@ public class Parser {
         return new Packet<byte[]>(packetslist.get(type), intArray);
     }
 
-    public static void encodePayload(Packet[] packets, EncodeCallback<byte[]> callback) throws UTF8Exception {
+    public static void encodePayload(Packet[] packets, EncodeCallback callback) throws UTF8Exception {
+        for (Packet packet : packets) {
+            if (packet.data instanceof byte[]) {
+                @SuppressWarnings("unchecked")
+                EncodeCallback<byte[]> _callback = (EncodeCallback<byte[]>) callback;
+                encodePayloadAsBinary(packets, _callback);
+                return;
+            }
+        }
+
+        if (packets.length == 0) {
+            callback.call("0:");
+            return;
+        }
+
+        final StringBuilder result = new StringBuilder();
+
+        for (Packet packet : packets) {
+            encodePacket(packet, false, new EncodeCallback() {
+                @Override
+                public void call(Object message) {
+                    result.append(setLengthHeader((String)message));
+                }
+            });
+        }
+
+        callback.call(result.toString());
+    }
+
+    private static String setLengthHeader(String message) {
+        return message.length() + ":" + message;
+    }
+
+    private static void encodePayloadAsBinary(Packet[] packets, EncodeCallback<byte[]> callback) throws UTF8Exception {
         if (packets.length == 0) {
             callback.call(new byte[0]);
             return;
@@ -122,35 +160,44 @@ public class Parser {
         final ArrayList<byte[]> results = new ArrayList<byte[]>(packets.length);
 
         for (Packet packet : packets) {
-            encodePacket(packet, true, new EncodeCallback() {
+            encodeOneBinaryPacket(packet, new EncodeCallback<byte[]>() {
                 @Override
-                public void call(Object packet) {
-                    if (packet instanceof String) {
-                        String encodingLength = String.valueOf(((String) packet).length());
-                        byte[] sizeBuffer = new byte[encodingLength.length() + 2];
-
-                        sizeBuffer[0] = (byte)0; // is a string
-                        for (int i = 0; i < encodingLength.length(); i ++) {
-                            sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
-                        }
-                        sizeBuffer[sizeBuffer.length - 1] = (byte)255;
-                        results.add(Buffer.concat(new byte[][] {sizeBuffer, stringToByteArray((String)packet)}));
-                        return;
-                    }
-
-                    String encodingLength = String.valueOf(((byte[])packet).length);
-                    byte[] sizeBuffer = new byte[encodingLength.length() + 2];
-                    sizeBuffer[0] = (byte)1; // is binary
-                    for (int i = 0; i < encodingLength.length(); i ++) {
-                        sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
-                    }
-                    sizeBuffer[sizeBuffer.length - 1] = (byte)255;
-                    results.add(Buffer.concat(new byte[][] {sizeBuffer, (byte[])packet}));
+                public void call(byte[] data) {
+                    results.add(data);
                 }
             });
         }
 
         callback.call(Buffer.concat(results.toArray(new byte[results.size()][])));
+    }
+
+    private static void encodeOneBinaryPacket(Packet p, final EncodeCallback<byte[]> doneCallback) throws UTF8Exception {
+        encodePacket(p, true, new EncodeCallback() {
+            @Override
+            public void call(Object packet) {
+                if (packet instanceof String) {
+                    String encodingLength = String.valueOf(((String) packet).length());
+                    byte[] sizeBuffer = new byte[encodingLength.length() + 2];
+
+                    sizeBuffer[0] = (byte)0; // is a string
+                    for (int i = 0; i < encodingLength.length(); i ++) {
+                        sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
+                    }
+                    sizeBuffer[sizeBuffer.length - 1] = (byte)255;
+                    doneCallback.call(Buffer.concat(new byte[][] {sizeBuffer, stringToByteArray((String)packet)}));
+                    return;
+                }
+
+                String encodingLength = String.valueOf(((byte[])packet).length);
+                byte[] sizeBuffer = new byte[encodingLength.length() + 2];
+                sizeBuffer[0] = (byte)1; // is binary
+                for (int i = 0; i < encodingLength.length(); i ++) {
+                    sizeBuffer[i + 1] = (byte)Character.getNumericValue(encodingLength.charAt(i));
+                }
+                sizeBuffer[sizeBuffer.length - 1] = (byte)255;
+                doneCallback.call(Buffer.concat(new byte[][] {sizeBuffer, (byte[])packet}));
+            }
+        });
     }
 
     public static void decodePayload(String data, DecodePayloadCallback<String> callback) {
@@ -165,37 +212,40 @@ public class Parser {
 
             if (':' != chr) {
                 length.append(chr);
-            } else {
-                int n;
-                try {
-                    n = Integer.parseInt(length.toString());
-                } catch (NumberFormatException e) {
-                    callback.call(err, 0, 1);
-                    return;
-                }
-
-                String msg;
-                try {
-                    msg = data.substring(i + 1, i + 1 + n);
-                } catch (IndexOutOfBoundsException e) {
-                    callback.call(err, 0, 1);
-                    return;
-                }
-
-                if (msg.length() != 0) {
-                    Packet<String> packet = decodePacket(msg, true);
-                    if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
-                        callback.call(err, 0, 1);
-                        return;
-                    }
-
-                    boolean ret = callback.call(packet, i + n, l);
-                    if (!ret) return;
-                }
-
-                i += n;
-                length = new StringBuilder();
+                continue;
             }
+
+            int n;
+            try {
+                n = Integer.parseInt(length.toString());
+            } catch (NumberFormatException e) {
+                callback.call(err, 0, 1);
+                return;
+            }
+
+            String msg;
+            try {
+                msg = data.substring(i + 1, i + 1 + n);
+            } catch (IndexOutOfBoundsException e) {
+                callback.call(err, 0, 1);
+                return;
+            }
+
+            if (msg.length() != 0) {
+                Packet<String> packet = decodePacket(msg, false);
+                if (err.type.equals(packet.type) && err.data.equals(packet.data)) {
+                    callback.call(err, 0, 1);
+                    return;
+                }
+
+                boolean ret = callback.call(packet, i + n, l);
+                if (!ret) {
+                    return;
+                }
+            }
+
+            i += n;
+            length = new StringBuilder();
         }
 
         if (length.length() > 0) {
@@ -210,23 +260,17 @@ public class Parser {
         while (bufferTail.capacity() > 0) {
             StringBuilder strLen = new StringBuilder();
             boolean isString = (bufferTail.get(0) & 0xFF) == 0;
-            boolean numberTooLong = false;
             for (int i = 1; ; i++) {
                 int b = bufferTail.get(i) & 0xFF;
                 if (b == 255) break;
                 // supports only integer
                 if (strLen.length() > MAX_INT_CHAR_LENGTH) {
-                    numberTooLong = true;
-                    break;
+                    callback.call(err, 0, 1);
+                    return;
                 }
                 strLen.append(b);
             }
-            if (numberTooLong) {
-                @SuppressWarnings("unchecked")
-                DecodePayloadCallback<String> tempCallback = callback;
-                tempCallback.call(err, 0, 1);
-                return;
-            }
+
             bufferTail.position(strLen.length() + 1);
             bufferTail = bufferTail.slice();
 
