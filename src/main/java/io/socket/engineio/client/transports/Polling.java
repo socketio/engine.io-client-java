@@ -183,10 +183,16 @@ abstract public class Polling extends Transport {
             }
         };
 
-        Parser.encodePayload(packets, new Parser.EncodeCallback<byte[]>() {
+        Parser.encodePayload(packets, new Parser.EncodeCallback() {
             @Override
-            public void call(byte[] data) {
-                self.doWrite(data, callbackfn);
+            public void call(Object data) {
+                if (data instanceof byte[]) {
+                    self.doWrite((byte[])data, callbackfn);
+                } else if (data instanceof String) {
+                    self.doWrite((String)data, callbackfn);
+                } else {
+                    logger.warning("Unexpected data: " + data);
+                }
             }
         });
     }
@@ -219,6 +225,8 @@ abstract public class Polling extends Transport {
     }
 
     abstract protected void doWrite(byte[] data, Runnable fn);
+
+    abstract protected void doWrite(String data, Runnable fn);
 
     abstract protected void doPoll();
 }

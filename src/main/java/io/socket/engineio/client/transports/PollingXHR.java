@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.socket.emitter.Emitter;
@@ -25,6 +26,8 @@ import okhttp3.ResponseBody;
 public class PollingXHR extends Polling {
 
     private static final Logger logger = Logger.getLogger(PollingXHR.class.getName());
+
+    private static boolean LOGGABLE_FINE = logger.isLoggable(Level.FINE);
 
     public PollingXHR(Transport.Options opts) {
         super(opts);
@@ -66,6 +69,15 @@ public class PollingXHR extends Polling {
 
     @Override
     protected void doWrite(byte[] data, final Runnable fn) {
+        this.doWrite((Object) data, fn);
+    }
+
+    @Override
+    protected void doWrite(String data, final Runnable fn) {
+        this.doWrite((Object) data, fn);
+    }
+
+    private void doWrite(Object data, final Runnable fn) {
         Request.Options opts = new Request.Options();
         opts.method = "POST";
         opts.data = data;
@@ -140,13 +152,17 @@ public class PollingXHR extends Polling {
         public static final String EVENT_ERROR = "error";
         public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
         public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
+
         private static final String BINARY_CONTENT_TYPE = "application/octet-stream";
+        private static final String TEXT_CONTENT_TYPE = "text/plain;charset=UTF-8";
+
+        private static final MediaType BINARY_MEDIA_TYPE = MediaType.parse(BINARY_CONTENT_TYPE);
+        private static final MediaType TEXT_MEDIA_TYPE = MediaType.parse(TEXT_CONTENT_TYPE);
 
         private String method;
         private String uri;
 
-        // data is always a binary
-        private byte[] data;
+        private Object data;
 
         private Call.Factory callFactory;
         private Response response;
@@ -161,28 +177,42 @@ public class PollingXHR extends Polling {
 
         public void create() {
             final Request self = this;
-            logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
+            if (LOGGABLE_FINE) logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
             Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
 
             if ("POST".equals(this.method)) {
-                headers.put("Content-type", new LinkedList<String>(Collections.singletonList(BINARY_CONTENT_TYPE)));
+                if (this.data instanceof byte[]) {
+                    headers.put("Content-type", new LinkedList<String>(Collections.singletonList(BINARY_CONTENT_TYPE)));
+                } else {
+                    headers.put("Content-type", new LinkedList<String>(Collections.singletonList(TEXT_CONTENT_TYPE)));
+                }
             }
 
             headers.put("Accept", new LinkedList<String>(Collections.singletonList("*/*")));
 
-            self.onRequestHeaders(headers);
+            this.onRequestHeaders(headers);
 
-            logger.fine(String.format("sending xhr with url %s | data %s", this.uri, Arrays.toString(this.data)));
+            if (LOGGABLE_FINE) {
+                logger.fine(String.format("sending xhr with url %s | data %s", this.uri,
+                        this.data instanceof byte[] ? Arrays.toString((byte[]) this.data) : this.data));
+            }
+
             okhttp3.Request.Builder requestBuilder = new okhttp3.Request.Builder();
             for (Map.Entry<String, List<String>> header : headers.entrySet()) {
                 for (String v : header.getValue()){
                     requestBuilder.addHeader(header.getKey(), v);
                 }
             }
+            RequestBody body = null;
+            if (this.data instanceof byte[]) {
+                body = RequestBody.create(BINARY_MEDIA_TYPE, (byte[])this.data);
+            } else if (this.data instanceof String) {
+                body = RequestBody.create(TEXT_MEDIA_TYPE, (String)this.data);
+            }
+
             okhttp3.Request request = requestBuilder
                     .url(HttpUrl.parse(self.uri))
-                    .method(self.method, (self.data != null) ?
-                            RequestBody.create(MediaType.parse(BINARY_CONTENT_TYPE), self.data) : null)
+                    .method(self.method, body)
                     .build();
 
             requestCall = callFactory.newCall(request);
@@ -255,7 +285,7 @@ public class PollingXHR extends Polling {
 
             public String uri;
             public String method;
-            public byte[] data;
+            public Object data;
             public Call.Factory callFactory;
         }
     }

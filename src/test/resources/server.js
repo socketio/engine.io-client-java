@@ -11,7 +11,10 @@ if (process.env.SSL) {
   http = require('http').createServer();
 }
 
-var server = engine.attach(http, {pingInterval: 500});
+var server = engine.attach(http, {
+  pingInterval: 500,
+  wsEngine: 'ws'
+});
 
 var port = process.env.PORT || 3000
 http.listen(port, function() {

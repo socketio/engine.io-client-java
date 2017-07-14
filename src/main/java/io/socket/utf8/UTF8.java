@@ -18,6 +18,12 @@ public final class UTF8 {
     private UTF8 () {}
 
     public static String encode(String string) throws UTF8Exception {
+        return encode(string, new Options());
+    }
+
+    public static String encode(String string, Options opts) throws UTF8Exception {
+        boolean strict = opts.strict;
+
         int[] codePoints = ucs2decode(string);
         int length = codePoints.length;
         int index = -1;
@@ -25,18 +31,24 @@ public final class UTF8 {
         StringBuilder byteString = new StringBuilder();
         while (++index < length) {
             codePoint = codePoints[index];
-            byteString.append(encodeCodePoint(codePoint));
+            byteString.append(encodeCodePoint(codePoint, strict));
         }
         return byteString.toString();
     }
 
     public static String decode(String byteString) throws UTF8Exception {
+        return decode(byteString, new Options());
+    }
+
+    public static String decode(String byteString, Options opts) throws UTF8Exception {
+        boolean strict = opts.strict;
+
         byteArray = ucs2decode(byteString);
         byteCount = byteArray.length;
         byteIndex = 0;
         List<Integer> codePoints = new ArrayList<Integer>();
         int tmp;
-        while ((tmp = decodeSymbol()) != -1) {
+        while ((tmp = decodeSymbol(strict)) != -1) {
             codePoints.add(tmp);
         }
         return ucs2encode(listToArray(codePoints));
@@ -54,7 +66,7 @@ public final class UTF8 {
         return output;
     }
 
-    private static String encodeCodePoint(int codePoint) throws UTF8Exception {
+    private static String encodeCodePoint(int codePoint, boolean strict) throws UTF8Exception {
         StringBuilder symbol = new StringBuilder();
         if ((codePoint & 0xFFFFFF80) == 0) {
             return symbol.append(Character.toChars(codePoint)).toString();
@@ -62,7 +74,9 @@ public final class UTF8 {
         if ((codePoint & 0xFFFFF800) == 0) {
             symbol.append(Character.toChars(((codePoint >> 6) & 0x1F) | 0xC0));
         } else if ((codePoint & 0xFFFF0000) == 0) {
-            checkScalarValue(codePoint);
+            if (!checkScalarValue(codePoint, strict)) {
+                codePoint = 0xFFFD;
+            }
             symbol.append(Character.toChars(((codePoint >> 12) & 0x0F) | 0xE0));
             symbol.append(createByte(codePoint, 6));
         } else if ((codePoint & 0xFFE00000) == 0) {
@@ -78,7 +92,7 @@ public final class UTF8 {
         return Character.toChars(((codePoint >> shift) & 0x3F) | 0x80);
     }
 
-    private static int decodeSymbol() throws UTF8Exception {
+    private static int decodeSymbol(boolean strict) throws UTF8Exception {
         int byte1;
         int byte2;
         int byte3;
@@ -115,8 +129,7 @@ public final class UTF8 {
             byte3 = readContinuationByte();
             codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
             if (codePoint >= 0x0800) {
-                checkScalarValue(codePoint);
-                return codePoint;
+                return checkScalarValue(codePoint, strict) ? codePoint : 0xFFFD;
             } else {
                 throw new UTF8Exception(INVALID_CONTINUATION_BYTE);
             }
@@ -158,13 +171,17 @@ public final class UTF8 {
         return output.toString();
     }
 
-    private static void checkScalarValue(int codePoint) throws UTF8Exception {
+    private static boolean checkScalarValue(int codePoint, boolean strict) throws UTF8Exception {
         if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
-            throw new UTF8Exception(
-                    "Lone surrogate U+" + Integer.toHexString(codePoint).toUpperCase() +
-                    " is not a scalar value"
-            );
+            if (strict) {
+                throw new UTF8Exception(
+                        "Lone surrogate U+" + Integer.toHexString(codePoint).toUpperCase() +
+                                " is not a scalar value"
+                );
+            }
+            return false;
         }
+        return true;
     }
 
     private static int[] listToArray(List<Integer> list) {
@@ -174,5 +191,9 @@ public final class UTF8 {
             array[i] = list.get(i);
         }
         return array;
+    }
+
+    public static class Options {
+        public boolean strict = true;
     }
 }

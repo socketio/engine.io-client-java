@@ -121,6 +121,7 @@ public class Socket extends Emitter {
     private String path;
     private String timestampParam;
     private List<String> transports;
+    private Map<String, Transport.Options> transportOptions;
     private List<String> upgrades;
     private Map<String, String> query;
     /*package*/ LinkedList<Packet> writeBuffer = new LinkedList<Packet>();
@@ -202,6 +203,8 @@ public class Socket extends Emitter {
         this.timestampRequests = opts.timestampRequests;
         this.transports = new ArrayList<String>(Arrays.asList(opts.transports != null ?
                 opts.transports : new String[]{Polling.NAME, WebSocket.NAME}));
+        this.transportOptions = opts.transportOptions != null ?
+                opts.transportOptions : new HashMap<String, Transport.Options>();
         this.policyPort = opts.policyPort != 0 ? opts.policyPort : 843;
         this.rememberUpgrade = opts.rememberUpgrade;
         this.callFactory = opts.callFactory != null ? opts.callFactory : defaultCallFactory;
@@ -272,18 +275,22 @@ public class Socket extends Emitter {
             query.put("sid", this.id);
         }
 
+        // per-transport options
+        Transport.Options options = this.transportOptions.get(name);
+
         Transport.Options opts = new Transport.Options();
-        opts.hostname = this.hostname;
-        opts.port = this.port;
-        opts.secure = this.secure;
-        opts.path = this.path;
         opts.query = query;
-        opts.timestampRequests = this.timestampRequests;
-        opts.timestampParam = this.timestampParam;
-        opts.policyPort = this.policyPort;
         opts.socket = this;
-        opts.callFactory = this.callFactory;
-        opts.webSocketFactory = this.webSocketFactory;
+
+        opts.hostname = options != null ? options.hostname : this.hostname;
+        opts.port = options != null ? options.port : this.port;
+        opts.secure = options != null ? options.secure : this.secure;
+        opts.path = options != null ? options.path : this.path;
+        opts.timestampRequests = options != null ? options.timestampRequests : this.timestampRequests;
+        opts.timestampParam = options != null ? options.timestampParam : this.timestampParam;
+        opts.policyPort = options != null ? options.policyPort : this.policyPort;
+        opts.callFactory = options != null ? options.callFactory : this.callFactory;
+        opts.webSocketFactory = options != null ? options.webSocketFactory : this.webSocketFactory;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {
@@ -866,7 +873,7 @@ public class Socket extends Emitter {
         public boolean rememberUpgrade;
         public String host;
         public String query;
-
+        public Map<String, Transport.Options> transportOptions;
 
         private static Options fromURI(URI uri, Options opts) {
             if (opts == null) {
