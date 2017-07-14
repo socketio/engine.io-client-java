@@ -12,6 +12,7 @@ import io.socket.yeast.Yeast;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 abstract public class Polling extends Transport {
@@ -108,7 +109,9 @@ abstract public class Polling extends Transport {
 
     private void _onData(Object data) {
         final Polling self = this;
-        logger.fine(String.format("polling got data %s", data));
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine(String.format("polling got data %s", data));
+        }
         Parser.DecodePayloadCallback callback = new Parser.DecodePayloadCallback() {
             @Override
             public boolean call(Packet packet, int index, int total) {
@@ -141,7 +144,9 @@ abstract public class Polling extends Transport {
             if (this.readyState == ReadyState.OPEN) {
                 this.poll();
             } else {
-                logger.fine(String.format("ignoring poll - transport state '%s'", this.readyState));
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(String.format("ignoring poll - transport state '%s'", this.readyState));
+                }
             }
         }
     }

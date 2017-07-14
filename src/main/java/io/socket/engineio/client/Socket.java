@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.socket.emitter.Emitter;
@@ -266,7 +267,9 @@ public class Socket extends Emitter {
     }
 
     private Transport createTransport(String name) {
-        logger.fine(String.format("creating transport '%s'", name));
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine(String.format("creating transport '%s'", name));
+        }
         Map<String, String> query = new HashMap<String, String>(this.query);
 
         query.put("EIO", String.valueOf(Parser.PROTOCOL));
@@ -307,11 +310,15 @@ public class Socket extends Emitter {
     }
 
     private void setTransport(Transport transport) {
-        logger.fine(String.format("setting transport %s", transport.name));
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine(String.format("setting transport %s", transport.name));
+        }
         final Socket self = this;
 
         if (this.transport != null) {
-            logger.fine(String.format("clearing existing transport %s", this.transport.name));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(String.format("clearing existing transport %s", this.transport.name));
+            }
             this.transport.off();
         }
 
@@ -341,7 +348,9 @@ public class Socket extends Emitter {
     }
 
     private void probe(final String name) {
-        logger.fine(String.format("probing transport '%s'", name));
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine(String.format("probing transport '%s'", name));
+        }
         final Transport[] transport = new Transport[] {this.createTransport(name)};
         final boolean[] failed = new boolean[] {false};
         final Socket self = this;
@@ -355,7 +364,9 @@ public class Socket extends Emitter {
             public void call(Object... args) {
                 if (failed[0]) return;
 
-                logger.fine(String.format("probe transport '%s' opened", name));
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(String.format("probe transport '%s' opened", name));
+                }
                 Packet<String> packet = new Packet<String>(Packet.PING, "probe");
                 transport[0].send(new Packet[] {packet});
                 transport[0].once(Transport.EVENT_PACKET, new Listener() {
@@ -365,13 +376,17 @@ public class Socket extends Emitter {
 
                         Packet msg = (Packet)args[0];
                         if (Packet.PONG.equals(msg.type) && "probe".equals(msg.data)) {
-                            logger.fine(String.format("probe transport '%s' pong", name));
+                            if (logger.isLoggable(Level.FINE)) {
+                                logger.fine(String.format("probe transport '%s' pong", name));
+                            }
                             self.upgrading = true;
                             self.emit(EVENT_UPGRADING, transport[0]);
                             if (null == transport[0]) return;
                             Socket.priorWebsocketSuccess = WebSocket.NAME.equals(transport[0].name);
 
-                            logger.fine(String.format("pausing current transport '%s'", self.transport.name));
+                            if (logger.isLoggable(Level.FINE)) {
+                                logger.fine(String.format("pausing current transport '%s'", self.transport.name));
+                            }
                             ((Polling)self.transport).pause(new Runnable() {
                                 @Override
                                 public void run() {
@@ -392,7 +407,9 @@ public class Socket extends Emitter {
                                 }
                             });
                         } else {
-                            logger.fine(String.format("probe transport '%s' failed", name));
+                            if (logger.isLoggable(Level.FINE)) {
+                                logger.fine(String.format("probe transport '%s' failed", name));
+                            }
                             EngineIOException err = new EngineIOException(PROBE_ERROR);
                             err.transport = transport[0].name;
                             self.emit(EVENT_UPGRADE_ERROR, err);
@@ -433,7 +450,9 @@ public class Socket extends Emitter {
 
                 freezeTransport.call();
 
-                logger.fine(String.format("probe transport \"%s\" failed because of error: %s", name, err));
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(String.format("probe transport \"%s\" failed because of error: %s", name, err));
+                }
 
                 self.emit(EVENT_UPGRADE_ERROR, error);
             }
@@ -460,7 +479,9 @@ public class Socket extends Emitter {
             public void call(Object... args) {
                 Transport to = (Transport)args[0];
                 if (transport[0] != null && !to.name.equals(transport[0].name)) {
-                    logger.fine(String.format("'%s' works - aborting '%s'", to.name, transport[0].name));
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.fine(String.format("'%s' works - aborting '%s'", to.name, transport[0].name));
+                    }
                     freezeTransport.call();
                 }
             }
@@ -506,7 +527,9 @@ public class Socket extends Emitter {
         if (this.readyState == ReadyState.OPENING ||
                 this.readyState == ReadyState.OPEN ||
                 this.readyState == ReadyState.CLOSING) {
-            logger.fine(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(String.format("socket received: type '%s', data '%s'", packet.type, packet.data));
+            }
 
             this.emit(EVENT_PACKET, packet);
             this.emit(EVENT_HEARTBEAT);
@@ -529,7 +552,9 @@ public class Socket extends Emitter {
                 this.emit(EVENT_MESSAGE, packet.data);
             }
         } else {
-            logger.fine(String.format("packet received with socket readyState '%s'", this.readyState));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(String.format("packet received with socket readyState '%s'", this.readyState));
+            }
         }
     }
 
@@ -585,7 +610,9 @@ public class Socket extends Emitter {
                 EventThread.exec(new Runnable() {
                     @Override
                     public void run() {
-                        logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
+                        }
                         self.ping();
                         self.onHeartbeat(self.pingTimeout);
                     }
@@ -627,7 +654,9 @@ public class Socket extends Emitter {
     private void flush() {
         if (this.readyState != ReadyState.CLOSED && this.transport.writable &&
                 !this.upgrading && this.writeBuffer.size() != 0) {
-            logger.fine(String.format("flushing %d packets in socket", this.writeBuffer.size()));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(String.format("flushing %d packets in socket", this.writeBuffer.size()));
+            }
             this.prevBufferLen = this.writeBuffer.size();
             this.transport.send(this.writeBuffer.toArray(new Packet[this.writeBuffer.size()]));
             this.emit(EVENT_FLUSH);
@@ -784,7 +813,9 @@ public class Socket extends Emitter {
     }
 
     private void onError(Exception err) {
-        logger.fine(String.format("socket error %s", err));
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine(String.format("socket error %s", err));
+        }
         Socket.priorWebsocketSuccess = false;
         this.emit(EVENT_ERROR, err);
         this.onClose("transport error", err);
@@ -796,7 +827,9 @@ public class Socket extends Emitter {
 
     private void onClose(String reason, Exception desc) {
         if (ReadyState.OPENING == this.readyState || ReadyState.OPEN == this.readyState || ReadyState.CLOSING == this.readyState) {
-            logger.fine(String.format("socket close with reason: %s", reason));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(String.format("socket close with reason: %s", reason));
+            }
             final Socket self = this;
 
             // clear timers
