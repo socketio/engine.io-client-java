@@ -1,4 +1,12 @@
 
+1.0.0 / 2017-07-14
+==================
+
+* compatible with engine.io 3.1.0
+* update parser: no strict UTF8 check
+* no UTF encodng for payloads which contains string only
+* add `transportOptions` option
+
 0.9.0 / 2017-07-11
 ==================
 
