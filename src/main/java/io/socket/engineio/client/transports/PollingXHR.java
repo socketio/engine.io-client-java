@@ -268,10 +268,10 @@ public class PollingXHR extends Polling {
 
         private void onLoad() {
             ResponseBody body = response.body();
-            String contentType = body.contentType().toString();
+            MediaType mediaType = body.contentType();
 
             try {
-                if (BINARY_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
+                if (mediaType != null && BINARY_CONTENT_TYPE.equalsIgnoreCase(mediaType.toString())) {
                     this.onData(body.bytes());
                 } else {
                     this.onData(body.string());
