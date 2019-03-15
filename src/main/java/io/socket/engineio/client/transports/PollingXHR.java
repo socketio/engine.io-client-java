@@ -268,9 +268,9 @@ public class PollingXHR extends Polling {
 
         private void onLoad() {
             ResponseBody body = response.body();
-            String contentType = body.contentType().toString();
 
             try {
+                String contentType = getContentTypeFromBody(body);
                 if (BINARY_CONTENT_TYPE.equalsIgnoreCase(contentType)) {
                     this.onData(body.bytes());
                 } else {
@@ -279,6 +279,14 @@ public class PollingXHR extends Polling {
             } catch (IOException e) {
                 this.onError(e);
             }
+        }
+
+        private String getContentTypeFromBody(ResponseBody body) {
+            MediaType mediaType = body.contentType();
+            if (mediaType == null) {
+                return "";
+            }
+            return mediaType.toString();
         }
 
         public static class Options {
