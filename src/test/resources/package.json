@@ -1,6 +1,6 @@
 {
   "private": true,
   "dependencies": {
-    "engine.io": "3.1.0"
+    "engine.io": "^3.4.2"
   }
 }
