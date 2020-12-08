@@ -1,5 +1,6 @@
 # Engine.IO-client Java
-[![Build Status](https://travis-ci.org/socketio/engine.io-client-java.png?branch=master)](https://travis-ci.org/socketio/engine.io-client-java)
+
+[![Build Status](https://github.com/socketio/engine.io-client-java/workflows/CI/badge.svg)](https://github.com/socketio/engine.io-client-java/actions)
 
 This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/socketio/engine.io-client).
 
