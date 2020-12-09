@@ -68,16 +68,7 @@ public class PollingXHR extends Polling {
     }
 
     @Override
-    protected void doWrite(byte[] data, final Runnable fn) {
-        this.doWrite((Object) data, fn);
-    }
-
-    @Override
     protected void doWrite(String data, final Runnable fn) {
-        this.doWrite((Object) data, fn);
-    }
-
-    private void doWrite(Object data, final Runnable fn) {
         Request.Options opts = new Request.Options();
         opts.method = "POST";
         opts.data = data;
@@ -121,11 +112,7 @@ public class PollingXHR extends Polling {
                     @Override
                     public void run() {
                         Object arg = args.length > 0 ? args[0] : null;
-                        if (arg instanceof String) {
-                            self.onData((String)arg);
-                        } else if (arg instanceof byte[]) {
-                            self.onData((byte[])arg);
-                        }
+                        self.onData((String)arg);
                     }
                 });
             }
@@ -153,16 +140,14 @@ public class PollingXHR extends Polling {
         public static final String EVENT_REQUEST_HEADERS = "requestHeaders";
         public static final String EVENT_RESPONSE_HEADERS = "responseHeaders";
 
-        private static final String BINARY_CONTENT_TYPE = "application/octet-stream";
         private static final String TEXT_CONTENT_TYPE = "text/plain;charset=UTF-8";
 
-        private static final MediaType BINARY_MEDIA_TYPE = MediaType.parse(BINARY_CONTENT_TYPE);
         private static final MediaType TEXT_MEDIA_TYPE = MediaType.parse(TEXT_CONTENT_TYPE);
 
         private String method;
         private String uri;
 
-        private Object data;
+        private String data;
 
         private Call.Factory callFactory;
         private Response response;
@@ -181,11 +166,7 @@ public class PollingXHR extends Polling {
             Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
 
             if ("POST".equals(this.method)) {
-                if (this.data instanceof byte[]) {
-                    headers.put("Content-type", new LinkedList<String>(Collections.singletonList(BINARY_CONTENT_TYPE)));
-                } else {
-                    headers.put("Content-type", new LinkedList<String>(Collections.singletonList(TEXT_CONTENT_TYPE)));
-                }
+                headers.put("Content-type", new LinkedList<String>(Collections.singletonList(TEXT_CONTENT_TYPE)));
             }
 
             headers.put("Accept", new LinkedList<String>(Collections.singletonList("*/*")));
@@ -193,8 +174,7 @@ public class PollingXHR extends Polling {
             this.onRequestHeaders(headers);
 
             if (LOGGABLE_FINE) {
-                logger.fine(String.format("sending xhr with url %s | data %s", this.uri,
-                        this.data instanceof byte[] ? Arrays.toString((byte[]) this.data) : this.data));
+                logger.fine(String.format("sending xhr with url %s | data %s", this.uri, this.data));
             }
 
             okhttp3.Request.Builder requestBuilder = new okhttp3.Request.Builder();
@@ -204,10 +184,8 @@ public class PollingXHR extends Polling {
                 }
             }
             RequestBody body = null;
-            if (this.data instanceof byte[]) {
-                body = RequestBody.create(BINARY_MEDIA_TYPE, (byte[])this.data);
-            } else if (this.data instanceof String) {
-                body = RequestBody.create(TEXT_MEDIA_TYPE, (String)this.data);
+            if (this.data != null) {
+                body = RequestBody.create(TEXT_MEDIA_TYPE, this.data);
             }
 
             okhttp3.Request request = requestBuilder
@@ -249,11 +227,6 @@ public class PollingXHR extends Polling {
             this.onSuccess();
         }
 
-        private void onData(byte[] data) {
-            this.emit(EVENT_DATA, data);
-            this.onSuccess();
-        }
-
         private void onError(Exception err) {
             this.emit(EVENT_ERROR, err);
         }
@@ -268,14 +241,9 @@ public class PollingXHR extends Polling {
 
         private void onLoad() {
             ResponseBody body = response.body();
-            MediaType mediaType = body.contentType();
 
             try {
-                if (mediaType != null && BINARY_CONTENT_TYPE.equalsIgnoreCase(mediaType.toString())) {
-                    this.onData(body.bytes());
-                } else {
-                    this.onData(body.string());
-                }
+                this.onData(body.string());
             } catch (IOException e) {
                 this.onError(e);
             }
@@ -285,7 +253,7 @@ public class PollingXHR extends Polling {
 
             public String uri;
             public String method;
-            public Object data;
+            public String data;
             public Call.Factory callFactory;
         }
     }

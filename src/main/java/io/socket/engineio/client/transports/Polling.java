@@ -7,7 +7,6 @@ import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
-import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
 
 import java.util.HashMap;
@@ -129,13 +128,7 @@ abstract public class Polling extends Transport {
             }
         };
 
-        if (data instanceof String) {
-            @SuppressWarnings("unchecked")
-            Parser.DecodePayloadCallback<String> tempCallback = callback;
-            Parser.decodePayload((String)data, tempCallback);
-        } else if (data instanceof byte[]) {
-            Parser.decodePayload((byte[])data, callback);
-        }
+        Parser.decodePayload((String) data, callback);
 
         if (this.readyState != ReadyState.CLOSED) {
             this.polling = false;
@@ -158,11 +151,7 @@ abstract public class Polling extends Transport {
             @Override
             public void call(Object... args) {
                 logger.fine("writing close packet");
-                try {
-                    self.write(new Packet[]{new Packet(Packet.CLOSE)});
-                } catch (UTF8Exception err) {
-                    throw new RuntimeException(err);
-                }
+                self.write(new Packet[]{new Packet(Packet.CLOSE)});
             }
         };
 
@@ -177,7 +166,7 @@ abstract public class Polling extends Transport {
         }
     }
 
-    protected void write(Packet[] packets) throws UTF8Exception {
+    protected void write(Packet[] packets) {
         final Polling self = this;
         this.writable = false;
         final Runnable callbackfn = new Runnable() {
@@ -188,16 +177,10 @@ abstract public class Polling extends Transport {
             }
         };
 
-        Parser.encodePayload(packets, new Parser.EncodeCallback() {
+        Parser.encodePayload(packets, new Parser.EncodeCallback<String>() {
             @Override
-            public void call(Object data) {
-                if (data instanceof byte[]) {
-                    self.doWrite((byte[])data, callbackfn);
-                } else if (data instanceof String) {
-                    self.doWrite((String)data, callbackfn);
-                } else {
-                    logger.warning("Unexpected data: " + data);
-                }
+            public void call(String data) {
+                self.doWrite(data, callbackfn);
             }
         });
     }
@@ -228,8 +211,6 @@ abstract public class Polling extends Transport {
         boolean ipv6 = this.hostname.contains(":");
         return schema + "://" + (ipv6 ? "[" + this.hostname + "]" : this.hostname) + port + this.path + derivedQuery;
     }
-
-    abstract protected void doWrite(byte[] data, Runnable fn);
 
     abstract protected void doWrite(String data, Runnable fn);
 

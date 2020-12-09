@@ -242,4 +242,20 @@ public class ConnectionTest extends Connection {
         socket.open();
         assertThat((Integer) values.take(), is(0));
     }
+
+    @Test(timeout = TIMEOUT)
+    public void receivePing() throws InterruptedException {
+        final BlockingQueue<String> values = new LinkedBlockingQueue<>();
+
+        socket = new Socket(createOptions());
+        socket.on(Socket.EVENT_PING, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                values.offer("end");
+                socket.close();
+            }
+        });
+        socket.open();
+        assertThat(values.take(), is("end"));
+    }
 }

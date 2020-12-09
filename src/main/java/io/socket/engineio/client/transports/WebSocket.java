@@ -1,24 +1,23 @@
 package io.socket.engineio.client.transports;
 
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.logging.Logger;
-
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.parser.Packet;
 import io.socket.engineio.parser.Parser;
 import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
-import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.logging.Logger;
 
 
 public class WebSocket extends Transport {
@@ -111,7 +110,7 @@ public class WebSocket extends Transport {
         });
     }
 
-    protected void write(Packet[] packets) throws UTF8Exception {
+    protected void write(Packet[] packets) {
         final WebSocket self = this;
         this.writable = false;
 

@@ -128,7 +128,6 @@ public class Socket extends Emitter {
     /*package*/ LinkedList<Packet> writeBuffer = new LinkedList<Packet>();
     /*package*/ Transport transport;
     private Future pingTimeoutTimer;
-    private Future pingIntervalTimer;
     private okhttp3.WebSocket.Factory webSocketFactory;
     private okhttp3.Call.Factory callFactory;
 
@@ -137,7 +136,7 @@ public class Socket extends Emitter {
     private final Listener onHeartbeatAsListener = new Listener() {
         @Override
         public void call(Object... args) {
-            Socket.this.onHeartbeat(args.length > 0 ? (Long)args[0]: 0);
+            Socket.this.onHeartbeat();
         }
     };
 
@@ -540,9 +539,14 @@ public class Socket extends Emitter {
                 } catch (JSONException e) {
                     this.emit(EVENT_ERROR, new EngineIOException(e));
                 }
-            } else if (Packet.PONG.equals(packet.type)) {
-                this.setPing();
-                this.emit(EVENT_PONG);
+            } else if (Packet.PING.equals(packet.type)) {
+                this.emit(EVENT_PING);
+                EventThread.exec(new Runnable() {
+                    @Override
+                    public void run() {
+                        Socket.this.sendPacket(Packet.PONG, null);
+                    }
+                });
             } else if (Packet.ERROR.equals(packet.type)) {
                 EngineIOException err = new EngineIOException("server error");
                 err.code = packet.data;
@@ -568,20 +572,18 @@ public class Socket extends Emitter {
         this.onOpen();
         // In case open handler closes socket
         if (ReadyState.CLOSED == this.readyState) return;
-        this.setPing();
+        this.onHeartbeat();
 
         this.off(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
         this.on(EVENT_HEARTBEAT, this.onHeartbeatAsListener);
     }
 
-    private void onHeartbeat(long timeout) {
+    private void onHeartbeat() {
         if (this.pingTimeoutTimer != null) {
             pingTimeoutTimer.cancel(false);
         }
 
-        if (timeout <= 0) {
-            timeout = this.pingInterval + this.pingTimeout;
-        }
+        long timeout = this.pingInterval + this.pingTimeout;
 
         final Socket self = this;
         this.pingTimeoutTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
@@ -596,46 +598,6 @@ public class Socket extends Emitter {
                 });
             }
         }, timeout, TimeUnit.MILLISECONDS);
-    }
-
-    private void setPing() {
-        if (this.pingIntervalTimer != null) {
-            pingIntervalTimer.cancel(false);
-        }
-
-        final Socket self = this;
-        this.pingIntervalTimer = this.getHeartbeatScheduler().schedule(new Runnable() {
-            @Override
-            public void run() {
-                EventThread.exec(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.fine(String.format("writing ping packet - expecting pong within %sms", self.pingTimeout));
-                        }
-                        self.ping();
-                        self.onHeartbeat(self.pingTimeout);
-                    }
-                });
-            }
-        }, this.pingInterval, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Sends a ping packet.
-     */
-    private void ping() {
-        EventThread.exec(new Runnable() {
-            @Override
-            public void run() {
-                Socket.this.sendPacket(Packet.PING, new Runnable() {
-                    @Override
-                    public void run() {
-                        Socket.this.emit(EVENT_PING);
-                    }
-                });
-            }
-        });
     }
 
     private void onDrain() {
@@ -833,9 +795,6 @@ public class Socket extends Emitter {
             final Socket self = this;
 
             // clear timers
-            if (this.pingIntervalTimer != null) {
-                this.pingIntervalTimer.cancel(false);
-            }
             if (this.pingTimeoutTimer != null) {
                 this.pingTimeoutTimer.cancel(false);
             }
