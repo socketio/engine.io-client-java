@@ -1,4 +1,11 @@
 
+1.0.1 / 2020-12-10
+==================
+
+### Bug Fixes
+
+* handle responses without content type ([#101](https://github.com/socketio/engine.io-client-java/issues/101)) ([6f065b7](https://github.com/socketio/engine.io-client-java/commit/6f065b7a62603730979d43cec71af0046ca4ab7c))
+
 1.0.0 / 2017-07-14
 ==================
 

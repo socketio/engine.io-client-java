@@ -6,8 +6,26 @@ This is the Engine.IO Client Library for Java, which is simply ported from the [
 
 See also: [Socket.IO-client Java](https://github.com/socketio/socket.io-client-java)
 
+## Table of content
+
+- [Compatibility](#compatibility)
+- [Installation](#installation)
+  - [Maven](#maven)
+  - [Gradle](#gradle)
+- [Usage](#usage)
+- [Features](#features)
+- [License](#license)
+
+## Compatibility
+
+| Client version | Engine.IO server | Socket.IO server |
+| -------------- | ---------------- | ---------------- |
+| 0.9.x  | 1.x | 1.x |
+| 1.x    | 3.x | 2.x |
+| -      | 4.x | 3.x |
+
 ## Installation
-The latest artifact is available on Maven Central. To install manually, please refer [dependencies](https://socketio.github.io/engine.io-client-java/dependencies.html).
+The latest artifact is available on Maven Central.
 
 ### Maven
 Add the following dependency to your `pom.xml`.
@@ -17,7 +35,7 @@ Add the following dependency to your `pom.xml`.
   <dependency>
     <groupId>io.socket</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </dependency>
 </dependencies>
 ```
@@ -26,16 +44,11 @@ Add the following dependency to your `pom.xml`.
 Add it as a gradle dependency for Android Studio, in `build.gradle`:
 
 ```groovy
-compile ('io.socket:engine.io-client:1.0.0') {
+compile ('io.socket:engine.io-client:1.0.1') {
   // excluding org.json which is provided by Android
   exclude group: 'org.json', module: 'json'
 }
 ```
-
-#### Engine.IO Server 1.x suppport
-
-The current version of engine.io-client-java doesn't support engine.io server 1.x.
-Please use engine.io-client-java 0.9.x for that instead.
 
 ## Usage
 Engine.IO-client Java has the similar api with the JS client. You can use `Socket` to connect:
