@@ -1,4 +1,17 @@
 
+2.0.0 / 2020-12-11
+==================
+
+### Features
+
+* add an extraHeaders option ([dfe65e3](https://github.com/socketio/engine.io-client-java/commit/dfe65e3b3b5eab4c3fddb9dfbf53d684fe461043))
+* add support for Engine.IO v4 ([41f89a3](https://github.com/socketio/engine.io-client-java/commit/41f89a38b7594f54ee9906bc91051874a60b690d))
+
+### Bug Fixes
+
+* check the type of the initial packet ([2b5dfb9](https://github.com/socketio/engine.io-client-java/commit/2b5dfb99f8f865362ddc0a17f52e8b70269d7572))
+
+
 1.0.1 / 2020-12-10
 ==================
 
