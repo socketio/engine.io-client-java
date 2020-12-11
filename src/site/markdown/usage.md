@@ -1,55 +1,3 @@
-# Engine.IO-client Java
-
-[![Build Status](https://github.com/socketio/engine.io-client-java/workflows/CI/badge.svg)](https://github.com/socketio/engine.io-client-java/actions)
-
-This is the Engine.IO Client Library for Java, which is simply ported from the [JavaScript client](https://github.com/socketio/engine.io-client).
-
-See also: [Socket.IO-client Java](https://github.com/socketio/socket.io-client-java)
-
-## Table of content
-
-- [Compatibility](#compatibility)
-- [Installation](#installation)
-  - [Maven](#maven)
-  - [Gradle](#gradle)
-- [Usage](#usage)
-- [Features](#features)
-- [License](#license)
-
-## Compatibility
-
-| Client version | Engine.IO server | Socket.IO server |
-| -------------- | ---------------- | ---------------- |
-| 0.9.x  | 1.x | 1.x |
-| 1.x    | 3.x | 2.x |
-| WIP    | 4.x | 3.x |
-
-## Installation
-The latest artifact is available on Maven Central.
-
-### Maven
-Add the following dependency to your `pom.xml`.
-
-```xml
-<dependencies>
-  <dependency>
-    <groupId>io.socket</groupId>
-    <artifactId>engine.io-client</artifactId>
-    <version>1.0.1</version>
-  </dependency>
-</dependencies>
-```
-
-### Gradle
-Add it as a gradle dependency for Android Studio, in `build.gradle`:
-
-```groovy
-compile ('io.socket:engine.io-client:1.0.1') {
-  // excluding org.json which is provided by Android
-  exclude group: 'org.json', module: 'json'
-}
-```
-
 ## Usage
 Engine.IO-client Java has the similar api with the JS client. You can use `Socket` to connect:
 
@@ -130,9 +78,5 @@ socket = new Socket(opts);
 ```
 
 ## Features
+
 This library supports all of the features the JS client does, including events, options and upgrading transport. Android is fully supported.
-
-## License
-
-MIT
-
