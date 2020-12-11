@@ -115,7 +115,7 @@ abstract public class Polling extends Transport {
         Parser.DecodePayloadCallback callback = new Parser.DecodePayloadCallback() {
             @Override
             public boolean call(Packet packet, int index, int total) {
-                if (self.readyState == ReadyState.OPENING) {
+                if (self.readyState == ReadyState.OPENING && Packet.OPEN.equals(packet.type)) {
                     self.onOpen();
                 }
 
