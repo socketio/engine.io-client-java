@@ -1,6 +1,7 @@
 package io.socket.engineio.client;
 
 
+import java.util.List;
 import java.util.Map;
 
 import io.socket.emitter.Emitter;
@@ -43,6 +44,7 @@ public abstract class Transport extends Emitter {
     protected ReadyState readyState;
     protected WebSocket.Factory webSocketFactory;
     protected Call.Factory callFactory;
+    protected Map<String, List<String>> extraHeaders;
 
     public Transport(Options opts) {
         this.path = opts.path;
@@ -55,6 +57,7 @@ public abstract class Transport extends Emitter {
         this.socket = opts.socket;
         this.webSocketFactory = opts.webSocketFactory;
         this.callFactory = opts.callFactory;
+        this.extraHeaders = opts.extraHeaders;
     }
 
     protected Transport onError(String msg, Exception desc) {
@@ -146,5 +149,6 @@ public abstract class Transport extends Emitter {
         protected Socket socket;
         public WebSocket.Factory webSocketFactory;
         public Call.Factory callFactory;
+        public Map<String, List<String>> extraHeaders;
     }
 }

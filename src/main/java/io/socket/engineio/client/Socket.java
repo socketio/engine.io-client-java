@@ -130,6 +130,7 @@ public class Socket extends Emitter {
     private Future pingTimeoutTimer;
     private okhttp3.WebSocket.Factory webSocketFactory;
     private okhttp3.Call.Factory callFactory;
+    private final Map<String, List<String>> extraHeaders;
 
     private ReadyState readyState;
     private ScheduledExecutorService heartbeatScheduler;
@@ -221,6 +222,7 @@ public class Socket extends Emitter {
             }
             webSocketFactory = defaultOkHttpClient;
         }
+        this.extraHeaders = opts.extraHeaders;
     }
 
     public static void setDefaultOkHttpWebSocketFactory(okhttp3.WebSocket.Factory factory) {
@@ -293,6 +295,7 @@ public class Socket extends Emitter {
         opts.policyPort = options != null ? options.policyPort : this.policyPort;
         opts.callFactory = options != null ? options.callFactory : this.callFactory;
         opts.webSocketFactory = options != null ? options.webSocketFactory : this.webSocketFactory;
+        opts.extraHeaders = this.extraHeaders;
 
         Transport transport;
         if (WebSocket.NAME.equals(name)) {

@@ -10,11 +10,14 @@ import org.junit.runners.JUnit4;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -169,6 +172,38 @@ public class ServerConnectionTest extends Connection {
     }
 
     @Test(timeout = TIMEOUT)
+    public void pollingHeaders_withExtraHeadersOption() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
+
+        Socket.Options opts = createOptions();
+        opts.transports = new String[] {Polling.NAME};
+        opts.extraHeaders = singletonMap("X-EngineIO", singletonList("bar"));
+
+        socket = new Socket(opts);
+        socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Transport transport = (Transport)args[0];
+                transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        List<String> values = headers.get("X-EngineIO");
+                        messages.offer(values.get(0));
+                        messages.offer(values.get(1));
+                    }
+                });
+            }
+        });
+        socket.open();
+
+        assertThat(messages.take(), is("hi"));
+        assertThat(messages.take(), is("bar"));
+        socket.close();
+    }
+
+    @Test(timeout = TIMEOUT)
     public void websocketHandshakeHeaders() throws URISyntaxException, InterruptedException {
         final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
 
@@ -203,6 +238,38 @@ public class ServerConnectionTest extends Connection {
 
         assertThat(messages.take(), is("hi"));
         assertThat(messages.take(), is("foo"));
+        socket.close();
+    }
+
+    @Test(timeout = TIMEOUT)
+    public void websocketHandshakeHeaders_withExtraHeadersOption() throws URISyntaxException, InterruptedException {
+        final BlockingQueue<String> messages = new LinkedBlockingQueue<String>();
+
+        Socket.Options opts = createOptions();
+        opts.transports = new String[] {WebSocket.NAME};
+        opts.extraHeaders = singletonMap("X-EngineIO", singletonList("bar"));
+
+        socket = new Socket(opts);
+        socket.on(Socket.EVENT_TRANSPORT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                Transport transport = (Transport)args[0];
+                transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                    @Override
+                    public void call(Object... args) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, List<String>> headers = (Map<String, List<String>>)args[0];
+                        List<String> values = headers.get("X-EngineIO");
+                        messages.offer(values.get(0));
+                        messages.offer(values.get(1));
+                    }
+                });
+            }
+        });
+        socket.open();
+
+        assertThat(messages.take(), is("hi"));
+        assertThat(messages.take(), is("bar"));
         socket.close();
     }
 

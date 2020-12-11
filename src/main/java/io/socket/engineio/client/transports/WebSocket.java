@@ -35,6 +35,9 @@ public class WebSocket extends Transport {
 
     protected void doOpen() {
         Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
+        if (this.extraHeaders != null) {
+            headers.putAll(this.extraHeaders);
+        }
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;

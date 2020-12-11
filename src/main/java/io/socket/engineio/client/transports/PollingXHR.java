@@ -43,6 +43,7 @@ public class PollingXHR extends Polling {
         }
         opts.uri = this.uri();
         opts.callFactory = this.callFactory;
+        opts.extraHeaders = this.extraHeaders;
 
         Request req = new Request(opts);
 
@@ -72,6 +73,7 @@ public class PollingXHR extends Polling {
         Request.Options opts = new Request.Options();
         opts.method = "POST";
         opts.data = data;
+        opts.extraHeaders = this.extraHeaders;
         Request req = this.request(opts);
         final PollingXHR self = this;
         req.on(Request.EVENT_SUCCESS, new Emitter.Listener() {
@@ -150,6 +152,7 @@ public class PollingXHR extends Polling {
         private String data;
 
         private Call.Factory callFactory;
+        private Map<String, List<String>> extraHeaders;
         private Response response;
         private Call requestCall;
 
@@ -158,13 +161,16 @@ public class PollingXHR extends Polling {
             this.uri = opts.uri;
             this.data = opts.data;
             this.callFactory = opts.callFactory != null ? opts.callFactory : new OkHttpClient();
+            this.extraHeaders = opts.extraHeaders;
         }
 
         public void create() {
             final Request self = this;
             if (LOGGABLE_FINE) logger.fine(String.format("xhr open %s: %s", this.method, this.uri));
             Map<String, List<String>> headers = new TreeMap<String, List<String>>(String.CASE_INSENSITIVE_ORDER);
-
+            if (this.extraHeaders != null) {
+                headers.putAll(this.extraHeaders);
+            }
             if ("POST".equals(this.method)) {
                 headers.put("Content-type", new LinkedList<String>(Collections.singletonList(TEXT_CONTENT_TYPE)));
             }
@@ -255,6 +261,7 @@ public class PollingXHR extends Polling {
             public String method;
             public String data;
             public Call.Factory callFactory;
+            public Map<String, List<String>> extraHeaders;
         }
     }
 }
