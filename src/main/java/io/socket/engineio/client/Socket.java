@@ -4,16 +4,9 @@ import org.json.JSONException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +29,8 @@ import okhttp3.OkHttpClient;
 public class Socket extends Emitter {
 
     private static final Logger logger = Logger.getLogger(Socket.class.getName());
+
+    private static final AtomicInteger HEARTBEAT_THREAD_COUNTER = new AtomicInteger();
 
     private static final String PROBE_ERROR = "probe error";
 
@@ -848,9 +843,20 @@ public class Socket extends Emitter {
 
     private ScheduledExecutorService getHeartbeatScheduler() {
         if (this.heartbeatScheduler == null || this.heartbeatScheduler.isShutdown()) {
-            this.heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+            this.heartbeatScheduler = createHeartbeatScheduler();
         }
         return this.heartbeatScheduler;
+    }
+
+    private ScheduledExecutorService createHeartbeatScheduler() {
+        return Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread thread = new Thread(r, "engine.io-client.heartbeat-" + HEARTBEAT_THREAD_COUNTER.getAndIncrement());
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
     }
 
     public static class Options extends Transport.Options {
