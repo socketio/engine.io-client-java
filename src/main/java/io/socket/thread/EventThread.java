@@ -61,12 +61,15 @@ public class EventThread extends Thread {
      * @param task
      */
     public static void nextTick(final Runnable task) {
-        service.execute(() -> {
-            try {
-                task.run();
-            } catch (Throwable t) {
-                logger.log(Level.SEVERE, "Task threw exception", t);
-                throw t;
+        service.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    task.run();
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Task threw exception", t);
+                    throw t;
+                }
             }
         });
     }
