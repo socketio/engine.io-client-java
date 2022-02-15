@@ -27,10 +27,7 @@ public class EventThread extends Thread {
 
     private static EventThread thread;
 
-    private static ExecutorService service;
-
-    private static int counter = 0;
-
+    private static final ExecutorService service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
 
     private EventThread(Runnable runnable) {
         super(runnable);
@@ -64,16 +61,7 @@ public class EventThread extends Thread {
      * @param task
      */
     public static void nextTick(final Runnable task) {
-        ExecutorService executor;
-        synchronized (EventThread.class) {
-          counter++;
-          if (service == null) {
-              service = Executors.newSingleThreadExecutor(THREAD_FACTORY);
-          }
-          executor = service;
-        }
-
-        executor.execute(new Runnable() {
+        service.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -81,15 +69,6 @@ public class EventThread extends Thread {
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Task threw exception", t);
                     throw t;
-                } finally {
-                    synchronized (EventThread.class) {
-                        counter--;
-                        if (counter == 0) {
-                            service.shutdown();
-                            service = null;
-                            thread = null;
-                        }
-                    }
                 }
             }
         });
