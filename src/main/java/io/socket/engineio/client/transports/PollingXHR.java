@@ -2,7 +2,6 @@ package io.socket.engineio.client.transports;
 
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,7 +17,6 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -160,7 +158,7 @@ public class PollingXHR extends Polling {
             this.method = opts.method != null ? opts.method : "GET";
             this.uri = opts.uri;
             this.data = opts.data;
-            this.callFactory = opts.callFactory != null ? opts.callFactory : new OkHttpClient();
+            this.callFactory = opts.callFactory;
             this.extraHeaders = opts.extraHeaders;
         }
 

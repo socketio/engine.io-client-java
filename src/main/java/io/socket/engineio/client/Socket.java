@@ -206,16 +206,10 @@ public class Socket extends Emitter {
         this.callFactory = opts.callFactory != null ? opts.callFactory : defaultCallFactory;
         this.webSocketFactory = opts.webSocketFactory != null ? opts.webSocketFactory : defaultWebSocketFactory;
         if (callFactory == null) {
-            if (defaultOkHttpClient == null) {
-                defaultOkHttpClient = new OkHttpClient();
-            }
-            callFactory = defaultOkHttpClient;
+            callFactory = getDefaultOkHttpClient();
         }
         if (webSocketFactory == null) {
-            if (defaultOkHttpClient == null) {
-                defaultOkHttpClient = new OkHttpClient();
-            }
-            webSocketFactory = defaultOkHttpClient;
+            webSocketFactory = getDefaultOkHttpClient();
         }
         this.extraHeaders = opts.extraHeaders;
     }
@@ -226,6 +220,15 @@ public class Socket extends Emitter {
 
     public static void setDefaultOkHttpCallFactory(okhttp3.Call.Factory factory) {
         defaultCallFactory = factory;
+    }
+
+    private static OkHttpClient getDefaultOkHttpClient() {
+        if (defaultOkHttpClient == null) {
+            defaultOkHttpClient = new OkHttpClient.Builder()
+                    .readTimeout(1, TimeUnit.MINUTES) // defaults to 10 seconds
+                    .build();
+        }
+        return defaultOkHttpClient;
     }
 
     /**
