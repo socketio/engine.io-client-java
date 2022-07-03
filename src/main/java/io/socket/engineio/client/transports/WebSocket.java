@@ -14,7 +14,6 @@ import io.socket.parseqs.ParseQS;
 import io.socket.thread.EventThread;
 import io.socket.utf8.UTF8Exception;
 import io.socket.yeast.Yeast;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocketListener;
@@ -39,7 +38,6 @@ public class WebSocket extends Transport {
         this.emit(EVENT_REQUEST_HEADERS, headers);
 
         final WebSocket self = this;
-        okhttp3.WebSocket.Factory factory = webSocketFactory != null ? webSocketFactory : new OkHttpClient();
         Request.Builder builder = new Request.Builder().url(uri());
         for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
             for (String v : entry.getValue()) {
@@ -47,7 +45,7 @@ public class WebSocket extends Transport {
             }
         }
         final Request request = builder.build();
-        ws = factory.newWebSocket(request, new WebSocketListener() {
+        ws = webSocketFactory.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(okhttp3.WebSocket webSocket, Response response) {
                 final Map<String, List<String>> headers = response.headers().toMultimap();
