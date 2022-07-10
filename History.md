@@ -1,4 +1,17 @@
 
+2.1.0 / 2022-07-10
+==================
+
+### Features
+
+* create heartbeat scheduler with named threads and as daemon ([#106](https://github.com/socketio/engine.io-client-java/issues/106)) ([7c9c382](https://github.com/socketio/engine.io-client-java/commit/7c9c382505f7411544add5a68fa326df3b82d2c1))
+
+### Bug Fixes
+
+* increase the readTimeout value of the default OkHttpClient ([fb531fa](https://github.com/socketio/engine.io-client-java/commit/fb531fab30968a4b65a402c81f37e92dd5671f33))
+
+
+
 2.0.0 / 2020-12-11
 ==================
 
