@@ -1,3 +1,12 @@
+1.0.2 / 2022-07-10
+==================
+
+### Bug Fixes
+
+* check the type of the initial packet ([319f2e2](https://github.com/socketio/engine.io-client-java/commit/319f2e21bedced2866790671b3ae9ae7b0fabb82))
+* increase the readTimeout value of the default OkHttpClient ([2d87497](https://github.com/socketio/engine.io-client-java/commit/2d874971c2428a7a444b3a33afe66aedcdce3a96))
+
+
 
 1.0.1 / 2020-12-10
 ==================

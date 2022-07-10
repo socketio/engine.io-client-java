@@ -35,7 +35,7 @@ Add the following dependency to your `pom.xml`.
   <dependency>
     <groupId>io.socket</groupId>
     <artifactId>engine.io-client</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
   </dependency>
 </dependencies>
 ```
@@ -44,7 +44,7 @@ Add the following dependency to your `pom.xml`.
 Add it as a gradle dependency for Android Studio, in `build.gradle`:
 
 ```groovy
-compile ('io.socket:engine.io-client:1.0.1') {
+compile ('io.socket:engine.io-client:1.0.2') {
   // excluding org.json which is provided by Android
   exclude group: 'org.json', module: 'json'
 }
