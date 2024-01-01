@@ -1,5 +1,6 @@
 package io.socket.engineio.parser;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +44,7 @@ public class Parser {
     private static void encodePacketAsBase64(Packet packet, EncodeCallback<String> callback) {
         if (packet.data instanceof byte[]) {
             byte[] data = ((Packet<byte[]>) packet).data;
-            String value = "b" + Base64.encodeToString(data, Base64.DEFAULT);
+            String value = "b" + Base64.getEncoder().encodeToString(data);
             callback.call(value);
         } else {
             encodePacket(packet, callback);
@@ -79,7 +80,7 @@ public class Parser {
         }
 
         if (data.charAt(0) == 'b') {
-            return new Packet(Packet.MESSAGE, Base64.decode(data.substring(1), Base64.DEFAULT));
+            return new Packet(Packet.MESSAGE, Base64.getDecoder().decode(data.substring(1)));
         } else {
             return decodePacket(data);
         }
