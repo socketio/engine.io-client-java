@@ -844,6 +844,14 @@ public class Socket extends Emitter {
         return this.id;
     }
 
+    /**
+     * Check transport writability
+     *
+     * @return true if transport is available and writable
+     */
+    public boolean checkTransportWritable() {
+        return transport != null && transport.writable;
+    }
     private ScheduledExecutorService getHeartbeatScheduler() {
         if (this.heartbeatScheduler == null || this.heartbeatScheduler.isShutdown()) {
             this.heartbeatScheduler = createHeartbeatScheduler();
